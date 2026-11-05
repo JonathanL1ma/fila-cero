@@ -42,6 +42,8 @@ docs/    TECNICO.md, MANUAL.md, IA_LOG.md
 | `npm run liga` | Bot en modo `arbiter` con supervisor (solo en la laptop de la liga) |
 | `npm run test:integration` | Bot completo contra el mock, 20 partidas |
 | `npm run selfplay` | Minitorneo entre configuraciones del motor |
+| `npm run benchmark` | Profundidad media y nodos por segundo, con y sin tabla de transposición |
+| `npm run bot` | El bot sin supervisor, según `MODE` |
 
 ## Reglas
 
@@ -51,5 +53,9 @@ docs/    TECNICO.md, MANUAL.md, IA_LOG.md
 - **Nunca** escribas en el repositorio el token, el `.env` ni la carpeta `logs/`, y nunca imprimas el token ni los encabezados de autorización.
 - El cliente del árbitro **no deduplica turnos**: si `/api/next` entrega un turno, se responde siempre.
 - Toda jugada enviada al árbitro se valida contra `legal_moves`.
+- Todo plazo que se pase a `AbortSignal.timeout` o `setTimeout` en el cliente del árbitro se redondea a entero: `performance.now()` da decimales y `AbortSignal.timeout` los rechaza (ver IA-09 en `docs/IA_LOG.md`).
+- Un 400 `validation` del árbitro no penaliza; solo `illegal_move` y `timeout` hacen perder la partida.
+- En la app, las columnas llenas usan `aria-disabled`, nunca `disabled`: con `disabled` el clic no llega y el aviso de columna llena no aparece.
+- En la app, el pedido al bot se hace en `useBotTurn`, con un `AbortController` en el cleanup y el pedido diferido con `setTimeout(0)`, para que StrictMode no duplique la llamada. Un `AbortError` de la cancelación se ignora; no es un error de conexión.
 - Commits pequeños con el número del paso del plan en el mensaje, por ejemplo `paso 3: motor v1 con atajos tácticos`.
 - Cuando la IA devuelva algo incorrecto y lo detectemos, se registra en `docs/IA_LOG.md`: qué se pidió, qué salió mal y cómo se detectó.

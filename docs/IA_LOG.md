@@ -26,8 +26,12 @@ Todas las horas son de Guatemala.
 | IA-06 | Una prueba prevista para la mañana del jueves podría no entrar en el tiempo | Revisión del repositorio (es una estimación, sin medir) |
 | IA-07 | Este mismo documento tuvo errores de la IA | Mariana los detectó al leerlo y al compararlo con Slack |
 | IA-08 | Otra IA (Gemini) propuso contar cosas que nunca pasaron | Comparamos cada propuesta con los mensajes y el historial |
+| IA-09 | Un error de la IA hacía que cada jugada saliera casi al límite del tiempo | Una prueba que juega partidas completas no terminaba a tiempo |
+| IA-10 | La IA dibujó mal varios tableros de prueba | Las pruebas fallaban con el código correcto |
+| IA-11 | La IA se adelantó en cosas que después tuvo que deshacer | Releyendo el plan y el contrato antes de guardar |
+| IA-12 | La versión final de las reglas del árbitro cambió algo que el plan daba por hecho | Revisión del contrato nuevo antes de programar |
 
-**Las mejores historias para la exposición:** IA-04, IA-01 e IA-08.
+**Las mejores historias para la exposición:** IA-04, IA-09, IA-01 e IA-08.
 
 ## Lo que aprendimos
 
@@ -51,7 +55,8 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
 | 14:59 | Oscar | Un segundo borrador, escrito por separado | IA-03 |
 | 15:02 | Jonathan | Revisión con 4 observaciones sobre la v0.2 | IA-04 |
 | 15:07 | Mariana | v1.0: la unión de la v0.2 con el borrador de Oscar | IA-03 |
-| 15:11 | Mariana | v1.1, con las 4 observaciones aplicadas | IA-04 |
+| Entre 15:07 y 15:11 | Jonathan | Revisión de la v1.0 con 3 observaciones: la deduplicación todavía ignoraba turnos, el `disabled` impedía el aviso de columna llena y el supervisor podía relanzar el bot sin fin | IA-04, IA-05 |
+| 15:11 | Mariana | v1.1, con las 4 observaciones aplicadas; corrige las dos primeras de la revisión de la v1.0, no la del supervisor | IA-04 |
 | 15:22 | Jonathan | Últimos ajustes; los planes se guardan en el repositorio | IA-05 |
 | 15:27 | Mariana | Consulta al jurado sobre las reglas oficiales | IA-01 |
 | 15:32 | Edson Lemus (jurado) | Responde y confirma el error | IA-01 |
@@ -86,7 +91,7 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
 - **Fecha, hora y paso del plan:** miércoles 4 de noviembre, 14:49 (revisión) y 14:54 (v0.2), paso 0.
 - **Quién:** Jonathan revisó; Mariana aplicó los cambios.
 - **Herramienta:** Claude, en la sesión de cada uno.
-- **Prompts:** de la revisión, [completar: Jonathan]. Para aplicarla: *"Resolve todas estas inconsistencias que tenes en los planes que me brindaste"*, con las 16 observaciones pegadas.
+- **Prompts:** de la revisión (Claude Code en la terminal, modelo Claude Opus 5.5): *"Puedes leer el challenge que tenemos que desarrollar con mi equipo (Team #2) y tambien está el API del árbitro, todo en la carpeta resources/. Igualmente en la carpeta están los planes iniciales para que los valides"*. Para aplicarla: *"Resolve todas estas inconsistencias que tenes en los planes que me brindaste"*, con las 16 observaciones pegadas.
 - **Qué estaba mal en la v0.1** (las cuatro observaciones críticas):
   1. **La deduplicación podía perder partidas por tiempo.** El bot marcaba el turno como respondido antes de saber si su jugada había llegado. Si fallaba la red, ignoraba el turno cuando el árbitro se lo volvía a entregar.
   2. **Ninguna llamada al servidor tenía tiempo máximo.** Si una conexión quedaba colgada, el bot esperaba para siempre y perdía por ausencia a los 30 segundos.
@@ -127,7 +132,7 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
 - **Fecha, hora y paso del plan:** miércoles 4 de noviembre, 15:02 (revisión) y 15:11 (v1.1), paso 0.
 - **Quién:** Jonathan revisó la v0.2; Mariana aplicó los cambios en la v1.1.
 - **Herramienta:** Claude, en la sesión de cada uno.
-- **Prompts:** de la revisión, [completar: Jonathan]. Para aplicarla: *"Ajusta el último plan enviado con estos ajustes"*, con las 4 observaciones pegadas.
+- **Prompts:** de la revisión (Claude Code, Claude Opus 5.5): *"Acabo de subir una nueva versión de los planes ya iterados con esta recomendaciones, como los ves ahora?"*. Para aplicarla: *"Ajusta el último plan enviado con estos ajustes"*, con las 4 observaciones pegadas.
 - **Qué estaba mal:**
   1. **El arreglo de la deduplicación de IA-02 trajo un error nuevo.** El plan decía que un turno ya respondido que reaparece "se ignora". Si el árbitro lo entrega, sigue pendiente: ignorarlo hace que el bot pregunte una y otra vez sin pausa (un "ciclo apretado") y que pierda por tiempo. El borrador de Oscar tenía la misma regla. Como la revisión llegó mientras se unían los borradores, el error sobrevivió en la v1.0.
   2. **No había una versión de respaldo** por si las mejoras del bot no llegaban a tiempo.
@@ -142,14 +147,14 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
 
 ### IA-05 · Últimas mejoras antes de guardar los planes
 
-**En simple.** Antes de guardar los planes en el repositorio, Jonathan agregó algunas mejoras. Por ejemplo, si la clave de acceso del equipo es incorrecta, el bot se detiene y avisa, en lugar de reintentar sin parar molestando al servidor. Y el minitorneo que usamos para decidir si una mejora del bot sirve pasó a jugar más partidas, para que el resultado no dependa de la suerte.
+**En simple.** Antes de guardar los planes en el repositorio, Jonathan agregó algunas mejoras. La principal no era nueva: la había encontrado una revisión de la v1.0 que la v1.1 no llegó a incorporar (ver la cronología). Por ejemplo, si la clave de acceso del equipo es incorrecta, el bot se detiene y avisa, en lugar de reintentar sin parar molestando al servidor. Y el minitorneo que usamos para decidir si una mejora del bot sirve pasó a jugar más partidas, para que el resultado no dependa de la suerte.
 
 **Detalle técnico**
 
 - **Fecha, hora y paso del plan:** miércoles 4 de noviembre, 15:22, paso 0 (commit `67e3b44`).
 - **Quién:** Jonathan.
-- **Herramienta:** [completar: Jonathan]
-- **Prompt:** [completar: Jonathan]
+- **Herramienta:** Claude Code en la terminal, modelo Claude Opus 5.5.
+- **Prompts:** sobre la v1.0: *"Cargue una actualización de los planes, vuelve a validar"*. Sobre la v1.1: *"Si, vuelve a revisar los planes y creo que hace falta el AGENT.md verdad?"*.
 - **Qué agregó sobre la v1.1:**
   - El código de salida 78 para errores de configuración, con el que el supervisor no vuelve a arrancar el bot: así no golpea al árbitro cada 2 segundos con una clave inválida.
   - El minitorneo (*selfplay*) con al menos 40 aperturas distintas, 80 partidas, porque con menos el resultado es ruido.
@@ -172,7 +177,7 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
   - La nota del encabezado del plan de backend dice v1.0 en un documento v1.1: un síntoma de las versiones sueltas (ver "Lo que aprendimos", punto 7).
   - `AGENTS.md` menciona el archivo del contrato del árbitro (`bot/contract/arbitro-openapi.json`), que todavía no está en el repositorio.
   - A `AGENTS.md` le faltan reglas que evitan errores reales, como las del cliente del árbitro, `aria-disabled` y `AbortController`.
-- **Qué decidimos:** [completar]
+- **Qué decidimos:** medirlo cuando existiera. El minitorneo se hizo en paralelo con varios hilos y **tardó 52 segundos** para 80 partidas (miércoles 4, noche, commit `4fd6efd`). La estimación de la IA era de 8 a 11 minutos para la versión sin paralelizar; la decisión de las 9:30 entra con holgura. Los detalles menores de archivos se corrigieron en `AGENTS.md`.
 - **¿Para la exposición?** Quizás.
 
 ### IA-07 · Este documento también tuvo errores de la IA
@@ -217,6 +222,71 @@ Las bases del challenge piden escribir un plan antes de programar. Nos organizam
 - **Qué decidimos:** aceptar el contenido técnico y descartar los hechos sin fuente. Si el equipo decide agregar la regla del navegador y el servidor a `AGENTS.md`, se registra cuando ocurra.
 - **¿Para la exposición?** Sí: una IA puede escribir una historia convincente sobre algo que no pasó.
 
+### IA-09 · Un error de la IA hacía que cada jugada saliera casi al límite del tiempo
+
+**En simple.** Cuando el bot le manda su jugada al árbitro, le pone un límite de espera: "si no respondes en tantos milisegundos, corto y reintento". La IA calculaba ese límite con decimales (por ejemplo, 925,37 ms), y la función de Node.js que hace el corte solo acepta números enteros. Cada envío fallaba al instante y el bot reintentaba una y otra vez, hasta que el mínimo de 300 ms le daba por casualidad un número entero. La jugada llegaba unos 2,7 segundos después de recibir el turno, con un límite de 3. En el torneo, cualquier demora de internet nos habría hecho perder por tiempo, partida tras partida. Ninguna revisión del plan podía verlo: lo encontró una prueba que juega partidas completas contra el árbitro simulado.
+
+**Detalle técnico**
+
+- **Fecha y paso del plan:** miércoles 4 de noviembre, noche, paso 4 (commit `32e8193`).
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code en la terminal, modelo Claude Opus 5.5.
+- **Prompt:** *"Vamos a hacerlo todo nosotros, ya mañana que el equipo revise y vea si ajusta su parte, hubo una actualización del resources/arbitro-openapi.json revisala antes de todo"*.
+- **Qué devolvió:** el cliente del árbitro con `AbortSignal.timeout(timeoutMs)`, donde `timeoutMs` es lo que queda del plazo según `performance.now()`, un número con decimales.
+- **Qué estaba mal:** `AbortSignal.timeout` lanza `RangeError: The value of "delay" is out of range. It must be an integer. Received 925.368125`. El cliente lo trataba como una falla de red y reintentaba cada 50 ms. El reintento escondía el error: el bot "funcionaba", solo que lento.
+- **Cómo lo detectamos:** cuatro pruebas de `loop.test.js` (el bot completo contra el mock) superaron el límite de 5 segundos. Un script de diagnóstico mostró las advertencias repetidas y un tiempo de punta a punta de 2,746 ms en un turno.
+- **Qué decidimos:** redondear el plazo en el cliente (`Math.floor`) y agregar una prueba de regresión ("acepta un plazo con decimales"). El registro de cada turno incluye el tiempo de punta a punta, que es lo que hizo visible el problema.
+- **¿Para la exposición?** Sí: es el ejemplo de por qué hay que probar el sistema completo y no solo las piezas.
+
+### IA-10 · La IA dibujó mal varios tableros de prueba
+
+**En simple.** Muchas pruebas usan tableros dibujados a mano: "en esta posición, el bot tiene que jugar en tal columna". Varias veces la IA dibujó un tablero que no mostraba lo que la prueba decía probar. La prueba fallaba aunque el programa estaba bien. La tentación era "arreglar" el programa para que la prueba pasara; lo correcto fue revisar el tablero casilla por casilla.
+
+**Detalle técnico**
+
+- **Fecha y pasos del plan:** miércoles 4 de noviembre, noche, pasos 2, 3 y app web.
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code, modelo Claude Opus 5.5.
+- **Qué estaba mal:**
+  1. Una prueba de "victoria horizontal en el borde derecho" usaba un tablero con varias líneas ganadoras y no comprobaba el borde. La IA lo vio al releerla antes de correrla.
+  2. El tablero de "una jugada que gana en dos direcciones" no formaba dos líneas. La prueba falló; el código estaba bien.
+  3. En la prueba de "no jugar debajo de una amenaza del rival", el tablero tenía una amenaza inmediata del rival, así que bloquear era la jugada correcta y el bot hacía bien en jugarla.
+  4. En la app, la prueba de columna llena terminaba con una ficha de la persona, así que le tocaba al bot y no a la persona; y en otra prueba, el bot simulado intentaba jugar en la columna ya llena.
+- **Cómo lo detectamos:** las pruebas fallaron (salvo la primera) y, antes de tocar el código, se revisó el tablero a mano.
+- **Qué decidimos:** corregir los tableros. Ninguna corrección cambió el código del programa. Es la regla de `AGENTS.md`: no se debilita una prueba ni se adapta el código a una prueba equivocada sin entender cuál de los dos falla.
+- **¿Para la exposición?** Quizás.
+
+### IA-11 · La IA se adelantó en cosas que después tuvo que deshacer
+
+**En simple.** Trabajando rápido, la IA hizo algunas cosas antes de tiempo o de más, y las corrigió al releer su trabajo contra el plan y contra las reglas del árbitro. Ninguna llegó a afectar al bot.
+
+**Detalle técnico**
+
+- **Fecha y pasos del plan:** miércoles 4 de noviembre, noche, pasos 4 a 6.
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code, modelo Claude Opus 5.5.
+- **Qué estaba mal:**
+  - **Etiquetó `v-segura` antes de tiempo**, después del motor y antes de que el bot jugara partidas completas a través del worker, que es lo que exige el plan. La etiqueta se borró al minuto y se volvió a poner en `33a19a3`, cuando se cumplió el criterio.
+  - **El árbitro simulado respondía un estado `lost`** que no existe en el contrato (solo `playing`, `won` y `draw`). Se corrigió antes del commit.
+  - **Después de reiniciar un worker trabado, lo "calentaba" con una búsqueda de 300 ms.** Si justo llegaba un turno, quedaba en cola detrás de esa búsqueda y perdía 300 ms de su presupuesto. Se quitó.
+  - **Importó un módulo que no existía** (`consistency.js`) para una función de diez líneas. Se reemplazó por funciones de `game/` antes de correr el código.
+- **Cómo lo detectamos:** la propia sesión, al releer el código contra `PLAN_BACKEND.md` y el OpenAPI antes de cada commit.
+- **¿Para la exposición?** No.
+
+### IA-12 · La versión final de las reglas del árbitro cambió algo que el plan daba por hecho
+
+**En simple.** La noche antes del torneo llegó la versión definitiva del documento que describe cómo hablar con el árbitro. El plan decía que cualquier jugada rechazada hacía perder la partida. La versión nueva aclara que, si el mensaje del bot está mal escrito, el árbitro lo rechaza **sin** penalizar. Antes de programar, le pedimos a la IA que comparara las dos versiones.
+
+**Detalle técnico**
+
+- **Fecha y paso del plan:** miércoles 4 de noviembre, noche, antes del paso 1.
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code, modelo Claude Opus 5.5.
+- **Prompt:** el mismo de IA-09.
+- **Qué encontró** (OpenAPI 0.9.0 contra 1.0.1): un 400 `validation` en `POST /api/move` no penaliza; un 409 también puede ser `unknown_game`; `/api/me` agrega `phase` y `standing` puede ser `null`; hay una fase nueva, `frozen`; la entrega valida la URL del repositorio y el hash con expresiones regulares; el árbitro sirve el contrato vigente en `/api/openapi.json`. El ejemplo de turno sigue siendo inconsistente (IA-01).
+- **Qué decidimos:** el cliente trata un 400 `validation` como un error nuestro y no como una derrota; el arranque no depende de `standing`. Los cambios quedan en "Cambios respecto al plan" de `docs/TECNICO.md`, porque los planes no se editan después del primer commit de código.
+- **¿Para la exposición?** Quizás.
+
 ## Lo que comprobamos por nuestra cuenta
 
 Cosas que la IA afirmó y que no dimos por buenas sin verificarlas.
@@ -232,7 +302,7 @@ Cosas que la IA afirmó y que no dimos por buenas sin verificarlas.
 - [ ] Que el contenido de las fuentes respalda lo que el plan les atribuye. Lo revisa Oscar cuando programe el motor, porque es quien las va a usar.
 - [ ] Que Claude Code lee `CLAUDE.md` y, a través de él, las reglas de `AGENTS.md`. Se comprueba la primera vez que alguien abra el repositorio con Claude Code.
 - [ ] Que Node 20 salió de soporte en abril de 2026.
-- [ ] Cuánto tarda de verdad el minitorneo de 80 partidas (IA-06). Se mide cuando exista (paso 7 del plan).
+- [x] **Cuánto tarda el minitorneo de 80 partidas** (IA-06): 52 s en 8 hilos, con 200 ms por jugada (`npm run selfplay`, commit `4fd6efd`).
 
 ## Glosario
 
