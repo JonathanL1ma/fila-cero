@@ -203,11 +203,12 @@ Qué se prueba, en resumen:
 | El presupuesto también se acota con `served_at` cuando el turno llega tarde | El plan medía solo desde la recepción para no depender de relojes sincronizados. El ensayo del día del evento mostró que así se pierde la partida si el bot se reinicia a mitad de un turno o si la red tarda en entregarlo. El tope solo acorta, ignora atrasos imposibles y se puede apagar (sección 4) |
 | Probados y descartados: orden por casillas ganadoras y paridad de amenazas | No mejoraron en duelos de 100 a 120 partidas (secciones 3.2 y 3.4); el plan pide ≥ 60 % para adoptar un cambio |
 | Casos tácticos con oráculo en vez de casos dibujados a mano | La IA generó y verificó los casos; el oráculo encontró que el ejemplo dibujado a mano en la asignación era una posición imposible (IA_LOG) |
+| Prueba del manual hecha por Mariana, del equipo, sin experiencia previa con el proyecto en su computadora, y no por una persona de fuera | Por tiempo, el jueves 5 a la mañana. Siguió el manual desde cero en una Mac sin Node.js: instalación, descarga, `npm install` (3 min), `npm start` y una partida. Encontró 13 problemas, todos corregidos en el manual (commit `719d930`): la app no está en internet y no lo decía; el botón "LTS" de nodejs.org ya no existe; faltaban los pasos del instalador; los avisos de `npm` parecían errores; no se explicaba cómo saber que algo terminó; faltaba cómo se juega; la app viene en Medio y no en Fácil, entre otros. Queda pendiente repetirla con una persona de fuera del equipo |
 
 ## 10. Pendientes para el jueves
 
 - Reemplazar `bot/contract/arbitro-openapi.json` por el que sirve el árbitro en `/api/openapi.json` y correr `npm test`.
 - Prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado, y calibrar `SEARCH_TIME_MS` con el campo `ms`.
 - Repetir `npm run benchmark` y `npm run test:integration` en la laptop de la liga.
-- Capturas para `docs/MANUAL.md` y prueba del manual con una persona sin perfil técnico.
+- Repetir la prueba del manual con una persona de fuera del equipo. Las capturas ya están y la primera prueba ya se hizo (sección 9).
 - Probar el nivel Fácil con alguien de fuera del equipo; si no logra ganar, bajar a profundidad 1.
