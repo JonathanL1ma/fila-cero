@@ -41,6 +41,7 @@ if (config.playsArbiter) {
     restart: engine.restart,
     searchTimeMs: config.searchTimeMs,
     safetyMs: config.safetyMs,
+    useServedAt: config.servedAtGuard,
     onError: (err) => log.error(`Error del motor: ${err.message}`),
   })
   log.info('Worker del torneo listo; esperando turnos')

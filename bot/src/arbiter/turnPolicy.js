@@ -19,6 +19,20 @@ export function fallbackMove(grid, player, legal, lastIteration) {
   return ordered.find((col) => !givesWinAbove(board, col, player)) ?? ordered[0]
 }
 
+// Cuando el turno llega tarde, lo que se deja libre después de buscar para enviar la jugada
+// y que el árbitro la reciba antes del plazo.
+const LATE_MARGIN_MS = 700
+
+// Milisegundos desde served_at (reloj del árbitro) hasta `wallNow` (reloj local), o null si no
+// se puede usar. Un atraso negativo, o mayor que el plazo más un segundo, no es un turno
+// tardío sino relojes desfasados, y se ignora.
+export function servedLagMs(turn, wallNow) {
+  const servedAt = Date.parse(turn.served_at)
+  if (!Number.isFinite(servedAt)) return null
+  const lag = wallNow - servedAt
+  return lag >= 0 && lag <= turn.deadline_ms + 1000 ? lag : null
+}
+
 export function createTurnPolicy({
   search,
   restart = () => {},
@@ -26,10 +40,21 @@ export function createTurnPolicy({
   safetyMs = 1300,
   watchdogMs = 500,
   now = () => performance.now(),
+  wallNow = () => Date.now(),
+  useServedAt = true,
+  lateMarginMs = LATE_MARGIN_MS,
   onError = () => {},
 }) {
   return async function decide(turn, receivedAt) {
-    const budget = Math.max(50, Math.min(searchTimeMs, turn.deadline_ms - safetyMs) - (now() - receivedAt))
+    // El reloj del árbitro corre desde served_at. Si el turno llegó tarde (el bot se reinició
+    // a mitad de un turno, o la red tardó en entregarlo), el presupuesto medido desde la
+    // recepción no alcanza: se acota también por lo que queda del plazo real. Solo puede
+    // acortar la búsqueda, nunca alargarla.
+    const lag = useServedAt ? servedLagMs(turn, wallNow()) : null
+    const fromReceipt = Math.min(searchTimeMs, turn.deadline_ms - safetyMs) - (now() - receivedAt)
+    const fromServed = lag === null ? Infinity : turn.deadline_ms - lag - lateMarginMs
+    const budget = Math.max(50, Math.min(fromReceipt, fromServed))
+    const late = { servedLagMs: lag, shortened: fromServed < fromReceipt }
     let last = null
     let timer
     const watchdog = new Promise((resolve) => {
@@ -44,12 +69,13 @@ export function createTurnPolicy({
     const result = await Promise.race([searching, watchdog])
     clearTimeout(timer)
 
-    if (typeof result === 'object' && turn.legal_moves.includes(result.column)) return { ...result, budget, fallback: false }
+    if (typeof result === 'object' && turn.legal_moves.includes(result.column)) return { ...result, budget, ...late, fallback: false }
     if (result === 'watchdog' || result === 'error') restart()
     return {
       column: fallbackMove(turn.board, turn.you, turn.legal_moves, last),
       depth: last?.depth ?? 0,
       budget,
+      ...late,
       fallback: result === 'watchdog' ? 'watchdog' : 'invalid',
     }
   }

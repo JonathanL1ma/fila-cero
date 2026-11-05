@@ -42,6 +42,9 @@ export async function runArbiterLoop({
     } else {
       for (const warning of checkConsistency(turn)) log.warn(`Turno ${key}: ${warning}`)
       decision = await decide(turn, receivedAt)
+      if (decision.shortened) {
+        log.warn(`Turno ${key} llegó ${Math.round(decision.servedLagMs)} ms después de served_at; búsqueda acotada a ${Math.round(decision.budget)} ms`)
+      }
       cache = { key, column: decision.column, conflicted: false }
     }
 
@@ -74,6 +77,7 @@ export async function runArbiterLoop({
       scores: decision.scores,
       search_ms: decision.elapsedMs === undefined ? undefined : Math.round(decision.elapsedMs),
       e2e_ms: Math.round(now() - receivedAt),
+      served_lag_ms: decision.servedLagMs == null ? undefined : Math.round(decision.servedLagMs),
       fallback: decision.fallback || undefined,
       cached: decision.cached || undefined,
       attempts,

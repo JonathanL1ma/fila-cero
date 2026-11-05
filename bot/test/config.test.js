@@ -11,6 +11,7 @@ describe('readConfig', () => {
       token: '',
       searchTimeMs: 1700,
       safetyMs: 1300,
+      servedAtGuard: true,
       host: '0.0.0.0',
       port: 3001,
       logDir: 'logs',
@@ -23,6 +24,11 @@ describe('readConfig', () => {
     expect(() => readConfig({ MODE: 'arbiter', ARBITRO_URL: 'https://a' })).toThrow(/TEAM_TOKEN/)
     const config = readConfig({ MODE: 'arbiter', ARBITRO_URL: 'https://a/', TEAM_TOKEN: 't' })
     expect(config).toMatchObject({ playsArbiter: true, servesApi: false, arbiterUrl: 'https://a' })
+  })
+
+  it('SERVED_AT_GUARD=0 apaga el ajuste del presupuesto por served_at', () => {
+    expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: '0' }).servedAtGuard).toBe(false)
+    expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: '1' }).servedAtGuard).toBe(true)
   })
 
   it('rechaza modos y números inválidos', () => {
