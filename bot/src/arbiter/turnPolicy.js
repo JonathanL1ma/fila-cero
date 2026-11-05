@@ -1,4 +1,5 @@
 import { CENTER_ORDER, fromGrid } from '@fila-cero/game'
+import { avoidedColumns } from './knownLosses.js'
 
 function givesWinAbove(board, col, player) {
   board.play(col, player)
@@ -62,13 +63,14 @@ export function createTurnPolicy({
     const fromServed = lag === null ? Infinity : deadlineMs - lag - LATE_MARGIN_MS
     const budget = Math.max(50, Math.min(fromReceipt, fromServed))
     const late = { servedLagMs: lag, servedLagRawMs: rawServedLagMs(turn, wall), shortened: budget < Math.max(50, fromReceipt) }
+    const exclude = avoidedColumns(turn)
     let last = null
     let timer
     const watchdog = new Promise((resolve) => {
       timer = setTimeout(() => resolve('watchdog'), budget + watchdogMs)
     })
     const searching = Promise.resolve()
-      .then(() => search({ grid: turn.board, player: turn.you, timeMs: budget, onIteration: (it) => (last = it) }))
+      .then(() => search({ grid: turn.board, player: turn.you, timeMs: budget, exclude, onIteration: (it) => (last = it) }))
       .catch((err) => {
         onError(err)
         return 'error'
@@ -76,7 +78,7 @@ export function createTurnPolicy({
     const result = await Promise.race([searching, watchdog])
     clearTimeout(timer)
 
-    if (typeof result === 'object' && turn.legal_moves.includes(result.column)) return { ...result, budget, ...late, fallback: false }
+    if (typeof result === 'object' && turn.legal_moves.includes(result.column)) return { ...result, budget, ...late, avoided: exclude.length ? exclude : undefined, fallback: false }
     if (result === 'watchdog' || result === 'error') restart()
     return {
       column: fallbackMove(turn.board, turn.you, turn.legal_moves, last),

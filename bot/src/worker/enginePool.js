@@ -35,11 +35,11 @@ export function createEngine({ workerFile = DEFAULT_WORKER, onRestart = () => {}
     pending.clear()
   }
 
-  function run({ grid, player, timeMs, maxDepth, tt, onIteration }) {
+  function run({ grid, player, timeMs, maxDepth, tt, exclude, onIteration }) {
     return new Promise((resolve, reject) => {
       const id = nextId++
       pending.set(id, { resolve, reject, onIteration })
-      worker.postMessage({ id, grid, player, timeMs, maxDepth, tt })
+      worker.postMessage({ id, grid, player, timeMs, maxDepth, tt, exclude })
     })
   }
 

@@ -79,6 +79,7 @@ export async function runArbiterLoop({
       e2e_ms: Math.round(now() - receivedAt),
       served_lag_ms: decision.servedLagRawMs == null ? undefined : Math.round(decision.servedLagRawMs),
       fallback: decision.fallback || undefined,
+      avoided: decision.avoided,
       cached: decision.cached || undefined,
       attempts,
       result: outcome,

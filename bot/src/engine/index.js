@@ -21,7 +21,7 @@ export function tacticalMove(board, player) {
   return null
 }
 
-export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIteration, tt = true } = {}) {
+export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIteration, tt = true, exclude = [] } = {}) {
   const start = performance.now()
   const board = fromGrid(grid)
   const result = { column: null, depth: 0, score: 0, scores: null, nodes: 0, elapsedMs: 0 }
@@ -39,6 +39,8 @@ export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIt
   if (tt) sharedTT.newSearch()
   const search = createSearch(board, clock, tt ? sharedTT : null)
   let order = CENTER_ORDER.filter((col) => board.canPlay(col))
+  const allowed = order.filter((col) => !exclude.includes(col))
+  if (allowed.length) order = allowed
   result.column = order[0]
   const limit = Math.min(maxDepth, CELLS - board.count)
 
