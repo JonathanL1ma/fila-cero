@@ -43,7 +43,9 @@ Si no carga, el firewall de la computadora puede estar bloqueando la conexión: 
 
 ## La pantalla
 
-> **Captura pendiente:** pantalla de inicio.
+![Pantalla de inicio, con el panel para elegir quién empieza y la dificultad, y el tablero vacío](img/01-inicio.png)
+
+*Así se ve la aplicación al abrirla.*
 
 De arriba hacia abajo:
 
@@ -69,15 +71,21 @@ De arriba hacia abajo:
 |---|---|---|
 | **"Tu turno: toca una columna"** | Te toca jugar | Toca o haz clic en cualquier parte de una columna. En una computadora, al pasar el mouse por encima se ve dónde caería la ficha |
 | **"El bot está pensando…"** con un círculo girando | El bot está eligiendo su jugada; el tablero no responde | Espera, tarda menos de 2 segundos |
-| Una columna **más clara** que las demás | Esa columna está llena | Elige otra |
+| Una columna **más apagada** que las demás | Esa columna está llena | Elige otra |
 | **"La columna X está llena, elige otra"** en rojo | Intentaste jugar en una columna llena | Toca otra columna; el aviso desaparece solo |
 | **"El bot analizó N jugadas hacia adelante en M ms"** | Cuánto pensó el bot en su última jugada | Nada, es informativo |
 
-> **Captura pendiente:** turno de la persona.
->
-> **Captura pendiente:** el bot pensando.
->
-> **Captura pendiente:** aviso de columna llena.
+![Tu turno: con el mouse sobre una columna se ve dónde caería la ficha](img/02-tu-turno.png)
+
+*Es tu turno. Con el mouse sobre la quinta columna, se ve en gris claro dónde caería tu ficha.*
+
+![El bot está pensando, con el círculo girando junto al mensaje](img/03-bot-pensando.png)
+
+*El bot está pensando su jugada. Mientras tanto, el tablero no responde.*
+
+![Aviso en rojo de que la columna 3 está llena](img/04-columna-llena.png)
+
+*La columna 3 está llena: se ve más apagada que las demás y, si la tocas, aparece el aviso en rojo.*
 
 También se puede jugar con el teclado: **Tab** para llegar al tablero, **flechas izquierda y derecha** para elegir la columna y **Enter** para soltar la ficha.
 
@@ -91,7 +99,9 @@ También se puede jugar con el teclado: **Tab** para llegar al tablero, **flecha
 
 Cuando alguien gana, las fichas de la línea ganadora brillan y el resto del tablero se oscurece.
 
-> **Captura pendiente:** victoria con la línea resaltada.
+![Fin de la partida: las cuatro fichas de la línea ganadora brillan y el resto se oscurece](img/05-fin-de-partida.png)
+
+*Ganaste: las cuatro fichas de la línea ganadora quedan resaltadas.*
 
 - **Jugar otra vez** empieza una partida nueva con las mismas opciones.
 - **Reiniciar** vuelve al panel de inicio para cambiar quién empieza o la dificultad.
@@ -105,4 +115,6 @@ Cuando alguien gana, las fichas de la línea ganadora brillan y el resto del tab
 | No carga en el teléfono | Revisa que el teléfono esté en la misma red Wi-Fi y el firewall (sección [Desde un teléfono](#desde-un-teléfono)) |
 | La Terminal dice "command not found: npm" | Falta instalar Node.js (paso 1 de [Si la vas a abrir tú](#si-la-vas-a-abrir-tú)) |
 
-> **Captura pendiente:** error de conexión con el botón Reintentar.
+![Mensaje de error: no se pudo contactar al bot, con el botón Reintentar](img/06-error.png)
+
+*El bot dejó de responder. La partida no se pierde: revisa la Terminal y pulsa Reintentar.*
