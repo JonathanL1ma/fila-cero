@@ -4,13 +4,17 @@ export const EXACT = 0
 export const LOWER = 1
 export const UPPER = 2
 
+// Generador mulberry32. No sirve uno lineal como xorshift: con él, cada número de
+// ZOBRIST_CHECK es una transformación fija del de ZOBRIST_INDEX, la segunda clave se deduce
+// de la primera y deja de verificar la posición (dos posiciones con la misma h1 tendrían
+// siempre la misma h2).
 function seeded(seed) {
-  let s = seed >>> 0
+  let a = seed | 0
   return () => {
-    s ^= s << 13
-    s ^= s >>> 17
-    s ^= s << 5
-    return s | 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return (t ^ (t >>> 14)) | 0
   }
 }
 
