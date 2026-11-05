@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 const supervisor = fileURLToPath(new URL('../../scripts/supervise.js', import.meta.url))
 const fixture = fileURLToPath(new URL('./crashThenConfigError.js', import.meta.url))
+const recordMode = fileURLToPath(new URL('./recordMode.js', import.meta.url))
 
 describe('supervisor', () => {
   it('relanza el bot si se cae y se detiene ante un error de configuración (código 78)', () => {
@@ -20,5 +21,14 @@ describe('supervisor', () => {
     expect(run.status).toBe(78)
     expect(run.stderr).toMatch(/se relanza/)
     expect(run.stderr).toMatch(/no relanza/)
+  })
+
+  it('arranca el bot en modo arbiter aunque el .env diga MODE=api', () => {
+    const marker = join(mkdtempSync(join(tmpdir(), 'fila-cero-')), 'mode')
+    spawnSync(process.execPath, [supervisor], {
+      env: { ...process.env, MODE: 'api', SUPERVISE_ENTRY: recordMode, SUPERVISE_MARKER: marker },
+      timeout: 10_000,
+    })
+    expect(readFileSync(marker, 'utf8')).toBe('arbiter')
   })
 })

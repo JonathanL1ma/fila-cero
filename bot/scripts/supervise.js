@@ -8,7 +8,7 @@ let child
 let stopping = false
 
 function launch() {
-  child = spawn(process.execPath, [entry], { stdio: 'inherit', env: { MODE: 'arbiter', ...process.env } })
+  child = spawn(process.execPath, [entry], { stdio: 'inherit', env: { ...process.env, MODE: 'arbiter' } })
   child.on('exit', (code, signal) => {
     if (stopping) process.exit(code ?? 0)
     if (code === CONFIG_ERROR_EXIT) {
