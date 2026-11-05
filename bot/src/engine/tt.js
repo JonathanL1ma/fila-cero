@@ -40,8 +40,16 @@ export function createTT(bits = 21) {
   const depth = new Int8Array(size).fill(-1)
   const flag = new Int8Array(size)
   const move = new Int8Array(size)
+  const generation = new Uint8Array(size)
+  let current = 0
 
   return {
+    // Cada búsqueda abre una generación. Una entrada profunda solo se protege del
+    // reemplazo si es de la búsqueda actual: si no, la tabla se llenaría de entradas de
+    // jugadas y partidas pasadas que el worker del torneo arrastra durante toda la liga.
+    newSearch() {
+      current = (current + 1) & 0xff
+    },
     probe(h1, h2) {
       const i = h1 & mask
       return depth[i] >= 0 && check[i] === h2 ? i : -1
@@ -52,7 +60,8 @@ export function createTT(bits = 21) {
     move: (i) => move[i],
     store(h1, h2, d, f, s, m) {
       const i = h1 & mask
-      if (depth[i] > d && check[i] !== h2) return
+      if (generation[i] === current && depth[i] > d && check[i] !== h2) return
+      generation[i] = current
       check[i] = h2
       depth[i] = d
       flag[i] = f

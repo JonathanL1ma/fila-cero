@@ -36,6 +36,7 @@ export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIt
 
   const clock = createClock(timeMs)
   if (tt && !sharedTT) sharedTT = createTT()
+  if (tt) sharedTT.newSearch()
   const search = createSearch(board, clock, tt ? sharedTT : null)
   let order = CENTER_ORDER.filter((col) => board.canPlay(col))
   result.column = order[0]
