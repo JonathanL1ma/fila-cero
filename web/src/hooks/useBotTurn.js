@@ -16,7 +16,12 @@ export function useBotTurn(state, dispatch) {
         .then((r) => dispatch({ type: 'BOT_MOVE', requestId, ...r }))
         .catch((err) => {
           if (controller.signal.aborted) return
-          const message = err.name === 'TimeoutError' ? 'El bot tardó demasiado en responder' : err.message
+          const message =
+            err.name === 'TimeoutError'
+              ? 'El bot tardó demasiado en responder'
+              : err.name === 'TypeError'
+                ? 'Revisa que la Terminal con npm start siga abierta'
+                : err.message
           dispatch({ type: 'BOT_ERROR', requestId, message })
         })
     }, 0)
