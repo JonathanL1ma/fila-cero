@@ -33,7 +33,7 @@ El motor no sabe nada de HTTP ni de hilos: se prueba llamando a `chooseMove` dir
 
 - Formato de intercambio (árbitro, API y app): `board[fila][columna]`, 7 filas × 8 columnas, fila 0 abajo, valores 0, 1 y 2.
 - Formato interno: `Int8Array(56)` con índice `fila * 8 + columna` y `heights[8]` con la próxima fila libre de cada columna. Jugar y deshacer son O(1).
-- Victoria: después de cada jugada se revisan las 4 direcciones alrededor de la última ficha. Si una jugada completa dos líneas, se devuelven las celdas de ambas.
+- Victoria: después de cada jugada se revisan las 4 direcciones alrededor de la última ficha. Si una jugada completa dos líneas, se devuelven las celdas de ambas (`winningCellsAt`, para la app). La búsqueda usa `completesLine`, que solo responde sí o no y no crea arreglos: es la misma regla, sin el costo de armar la lista de celdas en cada nodo.
 - La app y la API usan las mismas reglas a través de `fromGrid`, `applyMove`, `outcome` y `validateGrid`. No hay una segunda implementación.
 - **Bitboard descartado**: en 8×7 con fila centinela hacen falta 64 bits, y JavaScript solo tiene enteros exactos hasta 53. `BigInt` es demasiado lento.
 
@@ -45,11 +45,12 @@ El motor no sabe nada de HTTP ni de hilos: se prueba llamando a `chooseMove` dir
 
 En cada nodo, en este orden:
 
-1. Si el jugador que mueve tiene una jugada que gana ya, devuelve `GRANDE − (ply + 1)`. Así una victoria más cercana vale más y, si se va a perder, el bot elige perder lo más tarde posible.
+1. Si el jugador que mueve tiene una jugada que gana ya, devuelve `GRANDE − (ply + 1)`. Así una victoria más cercana vale más y, si se va a perder, el bot elige perder lo más tarde posible. Este chequeo se salta cuando el padre ya filtró sus jugadas en el paso 5: en ese caso se sabe que no hay victoria inmediata.
 2. Si quedan 0 o 1 casillas y no hay victoria inmediata, es empate (0).
-3. En la profundidad 0 devuelve la heurística.
+3. En la profundidad 0 devuelve la heurística, que ya está calculada (sección 3.2).
 4. Consulta la tabla de transposición (sección 3.3).
-5. Explora las columnas: primero la mejor según la tabla y después del centro hacia afuera, 3, 4, 2, 5, 1, 6, 0, 7. Las columnas centrales participan en más líneas y suelen producir más podas.
+5. **Descarta las jugadas que pierden de inmediato** (técnica de Pascal Pons, `possibleNonLosingMoves` en su solver). Si el rival tiene dos victorias inmediatas, la posición está perdida y devuelve `−(GRANDE − ply − 2)`. Si tiene una, la única jugada posible es taparla. Y nunca se juega justo debajo de una casilla donde el rival gana. Si no queda ninguna jugada, también está perdida. No cambia el valor minimax, solo poda: una prueba lo compara columna por columna con un negamax sin poda.
+6. Explora las columnas que quedan: primero la mejor según la tabla y después del centro hacia afuera, 3, 4, 2, 5, 1, 6, 0, 7. Las columnas centrales participan en más líneas y suelen producir más podas.
 
 **Iterative deepening**: se busca a profundidad 1, 2, 3… y se conserva la mejor jugada de la última iteración completa. La mejor jugada de cada iteración se explora primero en la siguiente. Si encuentra una victoria o una derrota forzada, se detiene.
 
@@ -59,24 +60,31 @@ En cada nodo, en este orden:
 
 El tablero 8×7 tiene **107 ventanas** de cuatro casillas: 35 horizontales, 32 verticales y 40 diagonales. Cada ventana con fichas de un solo jugador suma 2 si tiene dos fichas y 10 si tiene tres, a favor de quien las tiene. Cada ficha en las columnas centrales (3 y 4) suma 3.
 
-**No usamos** las reglas de paridad y zugzwang de la literatura de 7×6 (claimeven, amenazas en filas pares o impares): suponen columnas de altura par (6 filas), y aquí tienen 7.
+**Evaluación incremental.** Recorrer las 107 ventanas en cada hoja se llevaba el 71 % del tiempo de búsqueda (perfil de CPU con `node --cpu-prof`). Ahora el puntaje se mantiene jugada a jugada: cada casilla pertenece a lo sumo a 16 ventanas, y al poner o quitar una ficha solo se actualizan esas. `evaluate()` queda como versión de referencia; una prueba verifica que las dos coinciden en cada paso de 2,000 jugadas y deshacer al azar.
+
+**Paridad de amenazas: probada y descartada.** En 7×6 se usa que el primer jugador quiere amenazas en filas impares y el segundo en pares (Allis). Con una sola columna libre y la amenaza en la fila *r* (contando desde 1), quedan *H − r + 2* casillas vacías, y como el tablero tiene un total par de casillas, al jugador 1 le toca mover cuando quedan pares. Con *H = 6* sale la regla clásica; con *H = 7* **se invierte**: el jugador 1 quiere amenazas en filas pares. Implementamos una bonificación por amenazas según la fila y la medimos en duelos de 120 partidas contra el motor sin bonificación: regla derivada con peso 30, 47.1 %; regla clásica de 7×6, 43.8 %; derivada con peso 10, 54.2 %. Ninguna llega al 60 % ni sale del margen de error (±8.9), así que no se usa: a la profundidad que alcanzamos, la búsqueda ya ve lo que la bonificación intenta anticipar.
 
 ### 3.3 Tabla de transposición
 
 En Cuatro en línea se llega a la misma posición por distintos órdenes de jugadas. La tabla guarda el resultado de cada posición para no recalcularla.
 
 - **Hash Zobrist con dos claves de 32 bits**: cada combinación (jugador, casilla) tiene dos números aleatorios fijos, y el hash es el XOR de los de las fichas presentes. Se actualiza en O(1) al jugar y al deshacer. Una clave elige la entrada (2²¹ entradas) y la otra verifica que sea la misma posición. Son dos claves porque los operadores de bits de JavaScript trabajan con 32 bits.
+- **Los números salen de mulberry32, no de xorshift.** Con el generador lineal original, cada número de la segunda tabla era una transformación fija del de la primera, así que la segunda clave se deducía de la primera y no verificaba nada: en 300 mil tableros al azar, los 8 choques de la primera clave lo fueron también de la segunda. Con mulberry32, 0 de 11. Una prueba lo vigila.
+- **Reemplazo por generaciones.** Cada llamada a `chooseMove` abre una generación, y una entrada profunda solo se protege del reemplazo si es de la búsqueda actual. La regla anterior protegía para siempre las entradas profundas: el worker del torneo vive toda la liga, y tras 8 partidas sin limpiar la tabla llegar a profundidad 14 costaba 3.2 veces más nodos (2.05 → 6.50 millones). Con generaciones no se degrada (1.27 → 1.28 millones).
+- **Tipo de cota contra la ventana ajustada.** Si la tabla subió alfa y la búsqueda no lo supera, el resultado se guarda como cota superior y no como valor exacto.
 - Cada entrada guarda la profundidad restante, el **tipo de cota** (exacta, inferior o superior, según si el valor quedó dentro, por encima o por debajo de la ventana alfa-beta) y la mejor jugada.
 - **Ajuste de puntajes de victoria**: `GRANDE − ply` depende de la distancia a la raíz. Al guardar se convierte a distancia desde el nodo (se suma `ply`) y al leer se vuelve a convertir (se resta). Sin este ajuste, una victoria encontrada por un camino se reutiliza con un puntaje equivocado desde otro.
 - La tabla es persistente dentro del worker del torneo: lo aprendido en un turno sirve en el siguiente.
 
-**Cómo verificamos que está bien**: a profundidad fija, el puntaje de la raíz tiene que ser idéntico con y sin tabla. La prueba lo comprueba en 25 posiciones al azar, a profundidades 4 y 6.
+**Cómo verificamos que está bien**: a profundidad fija, el puntaje de la raíz tiene que ser idéntico con y sin tabla. La prueba lo comprueba en 25 posiciones al azar, a profundidades 4 y 6. Además, dos revisiones independientes: la primera comparó el motor original con un minimax exhaustivo (397 posiciones) y con un solucionador exacto en 1,200 jugadas de partidas reales; la segunda comparó el motor optimizado con el original en 1,500 posiciones (mismo puntaje y misma columna en la raíz). Ninguna encontró diferencias.
 
 ### 3.4 Fuentes
 
 - Pascal Pons, *Solving Connect 4: how to build a perfect AI* (blog.gamesolver.org): negamax, alfa-beta, orden por centro, tabla de transposición e iterative deepening. Lo adaptamos a 8×7: constantes, ventanas, orden de columnas y un arreglo plano en lugar de su bitboard.
 - Chess Programming Wiki (chessprogramming.org): *Alpha-Beta*, *Iterative Deepening*, *Transposition Table* y *Zobrist Hashing*, de donde salen los tipos de cota y el ajuste de puntajes de victoria.
-- Victor Allis (1988), *A Knowledge-based Approach of Connect-Four*: origen de las reglas de paridad que decidimos no usar.
+- Victor Allis (1988), *A Knowledge-based Approach of Connect-Four*: origen de las reglas de paridad que decidimos no usar (ver 3.2).
+- Código del solver de Pons (github.com/PascalPons/connect4, `Solver.cpp` y `Position.hpp`): el descarte de jugadas perdedoras (`possibleNonLosingMoves`) y el orden por casillas ganadoras. El blog no se pudo abrir (certificado TLS inválido), así que leímos el código. El orden por casillas ganadoras también lo probamos: con el tablero en arreglos cuesta más de lo que poda (53 % en duelo, sin significancia) y no se usa.
+- John Tromp, *John's Connect Four Playground* (tromp.github.io/c4/c4.html): la tabla de resultados teóricos marca 8×7 como **victoria del primer jugador** con juego perfecto. Coincide con lo que se ve en los duelos: quien abre gana más seguido.
 
 ## 4. Manejo del tiempo
 
@@ -85,7 +93,7 @@ El árbitro da `deadline_ms` (3,000 ms) desde `served_at`. Ese reloj arranca en 
 | Tramo | Valor por defecto |
 |---|---|
 | Presupuesto de búsqueda: `min(SEARCH_TIME_MS, deadline_ms − SAFETY_MS) − tiempo ya transcurrido` | 1,700 ms |
-| El motor revisa el reloj | cada 4,096 nodos |
+| El motor revisa el reloj | cada 1,024 nodos |
 | Watchdog en el hilo principal | presupuesto + 500 ms |
 | Tiempo máximo del `POST` | lo que quede del plazo (mínimo 300 ms) |
 | Reintentos del `POST` ante fallas de red | mientras queden más de 200 ms |
@@ -128,8 +136,9 @@ Los niveles de dificultad de la app son el mismo `chooseMove` con otros límites
 
 | Medición | Resultado | Cómo repetirla |
 |---|---|---|
-| Profundidad media en 1,700 ms (7 posiciones) | 10.9 sin tabla, **13.6 con tabla** | `npm run benchmark` |
-| Nodos por segundo | ~515 mil sin tabla, ~617 mil con tabla | `npm run benchmark` |
+| Profundidad media en 1,700 ms (7 posiciones) | 13.3 sin tabla, **17.0 con tabla** (antes de las optimizaciones: 10.9 y 13.6) | `npm run benchmark` |
+| Nodos por segundo | ~3.76 millones sin tabla, ~2.88 millones con tabla (antes: ~515 y ~617 mil) | `npm run benchmark` |
+| Duelo del motor optimizado contra el anterior, tabla persistente como en el torneo | 200 ms, 120 partidas: 78 victorias, 7 empates, 35 derrotas = **67.9 %** ± 8.4. 1,000 ms, 50 partidas: 33-1-16 = **67 %** ± 13 | duelo entre dos copias del repo (cada motor con su propia tabla) |
 | Selfplay con tabla contra sin tabla (80 partidas, 200 ms por jugada) | 50 victorias, 4 empates, 26 derrotas: **65 % de los puntos** | `npm run selfplay` (52 s en 8 hilos) |
 | Integración contra `casa-basico` (20 + 20 partidas, con y sin caos) | 40 victorias; 0 ilegales, 0 timeouts, 0 ausencias, 0 respaldos | `npm run test:integration` |
 | Relanzamiento con `kill -9` | 1.54 s hasta volver a esperar turnos | manual, ver sección 9.4 del plan |
@@ -138,7 +147,7 @@ Mediciones hechas en una MacBook con Node 24.9. Antes de la liga se repiten en l
 
 ## 8. Pruebas y cobertura
 
-`npm test` corre 106 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom).
+`npm test` corre 143 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
 
 | Carpeta | Líneas cubiertas |
 |---|---|
@@ -155,6 +164,8 @@ Qué se prueba, en resumen:
 
 - **Reglas**: caída de fichas, columna llena y fuera de rango, las cuatro direcciones en los bordes, empate con 56 fichas, jugada 56 que gana, cinco en línea, victoria en dos direcciones, validación de tableros.
 - **Algoritmo**: gana y bloquea en 1, doble amenaza puntuada como victoria en 3, columnas que regalan la victoria, presupuesto de tiempo, una sola columna, tablero a una ficha de llenarse, 300 posiciones al azar sin jugadas ilegales, equivalencia de la tabla.
+- **13 casos tácticos** (`bot/test/fixtures/tactical-cases.js`) verificados por un oráculo de fuerza bruta que no comparte código con el motor ni con `game` (`bot/scripts/verify-tactical-cases.js`, también corre dentro de `npm test`): cada tablero tiene que ser alcanzable y la respuesta esperada tiene que ser exactamente el conjunto de columnas correctas.
+- **Diferenciales**: cada columna de la raíz contra un negamax sin poda (150 posiciones), evaluación incremental contra `evaluate()`, y las claves Zobrist (la segunda distingue lo que la primera confunde). Se comprobó que fallan con mutaciones del código: saltar el chequeo de victoria en la raíz, dejar pasar una posición sin jugadas, volver al generador lineal.
 - **Cliente del árbitro**, contra el mock en el puerto 0 y con las respuestas validadas contra el OpenAPI con Ajv: turnos, idle, 200, 400, 401, 409, `POST` perdido, `/next` colgado, `5xx` y el ejemplo inconsistente del contrato.
 - **Worker**: motor real contra el mock; worker falso que se cuelga, muere o falla.
 - **App**: reducer, cliente con error, timeout y cancelación, y la app con StrictMode (una sola llamada por turno, aviso de columna llena, línea ganadora, error y reintento).
@@ -176,6 +187,11 @@ Qué se prueba, en resumen:
 | Dos módulos CSS compartidos (`Board` y `Panels`) en lugar de uno por componente | Los componentes del tablero comparten estilos; separarlos solo duplicaba reglas |
 | `npm run dev` usa `&` para levantar el bot y Vite | Sin dependencias extra; no funciona en la terminal de Windows (`npm start` sí) |
 | `npm run selfplay` corre en paralelo con workers | 80 partidas en 52 s, para que la decisión de las 9:30 entre en el tiempo (IA-06) |
+| El motor revisa el reloj cada 1,024 nodos y no cada 4,096 | Con la suite completa, otros archivos de prueba compiten por la CPU y la prueba de presupuesto fallaba 3 de 3 veces (230 ms con 100 de presupuesto). Con 1,024 pasa siempre y la profundidad alcanzada no cambia |
+| Evaluación incremental, chequeo de victoria sin arreglos, descarte de jugadas perdedoras y tabla por generaciones (Oscar, con Claude Code) | Paso 7 del plan: mejorar el motor. Se midió cada cambio por separado con duelos entre copias del repo; el conjunto saca 67.9 % contra el motor anterior (sección 7) |
+| Segunda clave Zobrist con mulberry32 | Hallazgo de una revisión independiente: con xorshift la segunda clave no verificaba nada (sección 3.3) |
+| Probados y descartados: orden por casillas ganadoras y paridad de amenazas | No mejoraron en duelos de 100 a 120 partidas (secciones 3.2 y 3.4); el plan pide ≥ 60 % para adoptar un cambio |
+| Casos tácticos con oráculo en vez de casos dibujados a mano | La IA generó y verificó los casos; el oráculo encontró que el ejemplo dibujado a mano en la asignación era una posición imposible (IA_LOG) |
 
 ## 10. Pendientes para el jueves
 
