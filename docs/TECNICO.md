@@ -88,17 +88,23 @@ En Cuatro en línea se llega a la misma posición por distintos órdenes de juga
 
 ## 4. Manejo del tiempo
 
-El árbitro da `deadline_ms` (3,000 ms) desde `served_at`. Ese reloj arranca en el servidor, así que cuentan la bajada del turno, la búsqueda y la subida del `POST`. No comparamos contra `served_at` porque los relojes pueden no estar sincronizados: medimos desde que **recibimos** el turno.
+El árbitro da `deadline_ms` (3,000 ms) desde `served_at`. Ese reloj arranca en el servidor, así que cuentan la bajada del turno, la búsqueda y la subida del `POST`. El presupuesto se mide desde que **recibimos** el turno y, además, se acota con `served_at` cuando el turno llega tarde (ver más abajo).
 
 | Tramo | Valor por defecto |
 |---|---|
 | Presupuesto de búsqueda: `min(SEARCH_TIME_MS, deadline_ms − SAFETY_MS) − tiempo ya transcurrido` | 1,700 ms |
+| Tope si el turno llegó tarde: `deadline_ms − (ahora − served_at) − 700 ms`, si es menor | no se activa con atrasos normales (< ~600 ms) |
 | El motor revisa el reloj | cada 1,024 nodos |
 | Watchdog en el hilo principal | presupuesto + 500 ms |
 | Tiempo máximo del `POST` | lo que quede del plazo (mínimo 300 ms) |
 | Reintentos del `POST` ante fallas de red | mientras queden más de 200 ms |
 
 - **Watchdog**: el hilo principal compite el resultado del worker contra un temporizador. Si el temporizador gana (worker colgado o con error), envía la jugada de respaldo, termina el worker y crea otro.
+- **Turnos que llegan tarde.** Si el bot se reinicia a mitad de un turno, o la red tarda en entregarlo, el turno llega con parte del plazo gastado: el reloj del árbitro corre desde `served_at`. Por eso el presupuesto también se acota con `deadline_ms − (ahora − served_at) − 700 ms`. Solo puede acortar la búsqueda: si el reloj de la laptop está atrasado respecto del árbitro, el atraso sale negativo y se ignora; si sale mayor que el plazo más un segundo, son relojes desfasados y también se ignora. `SERVED_AT_GUARD=0` lo apaga. Cada turno registra el atraso en `logs/turns.jsonl` (`served_lag_ms`) y, si acortó la búsqueda, avisa en la consola. En las prácticas del jueves conviene mirar ese valor: tiene que ser chico (la bajada por la red). Si es sistemáticamente grande, el reloj de la laptop está adelantado.
+- **Ensayo del día del evento** (árbitro simulado, bot con `npm run liga`):
+  - `kill -9` a mitad de un turno: sin el ajuste se perdió la partida por tiempo (relanzar ~2 s + buscar 1.7 s). Con el ajuste, el turno llegó 2,328 ms tarde, se buscó 50 ms y el árbitro registró 2,381 ms: partida salvada y ganada.
+  - Bajada lenta de 1.3 s, simulada con un proxy que retiene los turnos: sin el ajuste, 2 de 2 partidas perdidas por tiempo. Con el ajuste, 4 de 4 ganadas, peor caso 2,305 ms y profundidad media 13.8.
+  - Sin atraso, el ajuste no se activa: atraso máximo 1 ms y ninguna búsqueda acortada.
 - **Jugada de respaldo**, en orden: la mejor jugada de la última iteración completa con profundidad ≥ 2; ganar ya; bloquear; la primera columna desde el centro que no le deje al rival una victoria justo encima; la primera legal. Siempre se valida contra `legal_moves`.
 - **Worker caliente**: al arrancar, cada worker hace una búsqueda de 300 ms para que V8 compile el código antes del primer turno real.
 
@@ -147,7 +153,7 @@ Mediciones hechas en una MacBook con Node 24.9. Antes de la liga se repiten en l
 
 ## 8. Pruebas y cobertura
 
-`npm test` corre 143 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
+`npm test` corre 151 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
 
 | Carpeta | Líneas cubiertas |
 |---|---|
@@ -190,6 +196,7 @@ Qué se prueba, en resumen:
 | El motor revisa el reloj cada 1,024 nodos y no cada 4,096 | Con la suite completa, otros archivos de prueba compiten por la CPU y la prueba de presupuesto fallaba 3 de 3 veces (230 ms con 100 de presupuesto). Con 1,024 pasa siempre y la profundidad alcanzada no cambia |
 | Evaluación incremental, chequeo de victoria sin arreglos, descarte de jugadas perdedoras y tabla por generaciones (Oscar, con Claude Code) | Paso 7 del plan: mejorar el motor. Se midió cada cambio por separado con duelos entre copias del repo; el conjunto saca 67.9 % contra el motor anterior (sección 7) |
 | Segunda clave Zobrist con mulberry32 | Hallazgo de una revisión independiente: con xorshift la segunda clave no verificaba nada (sección 3.3) |
+| El presupuesto también se acota con `served_at` cuando el turno llega tarde | El plan medía solo desde la recepción para no depender de relojes sincronizados. El ensayo del día del evento mostró que así se pierde la partida si el bot se reinicia a mitad de un turno o si la red tarda en entregarlo. El tope solo acorta, ignora atrasos imposibles y se puede apagar (sección 4) |
 | Probados y descartados: orden por casillas ganadoras y paridad de amenazas | No mejoraron en duelos de 100 a 120 partidas (secciones 3.2 y 3.4); el plan pide ≥ 60 % para adoptar un cambio |
 | Casos tácticos con oráculo en vez de casos dibujados a mano | La IA generó y verificó los casos; el oráculo encontró que el ejemplo dibujado a mano en la asignación era una posición imposible (IA_LOG) |
 
