@@ -32,7 +32,8 @@
   outline-offset: 2px;
 }
 
-.board:not(.finished) .full {  opacity: 0.55;
+.board:not(.finished) .full {
+  opacity: 0.55;
 }
 
 .full:not(:disabled) {
