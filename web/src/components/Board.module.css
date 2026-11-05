@@ -1,0 +1,114 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--gap);
+  padding: var(--gap);
+  width: min(100%, 560px, calc((100dvh - 260px) * 8 / 7));
+  aspect-ratio: 8 / 7;
+  margin: 0 auto;
+  background: var(--board);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.column {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: var(--gap);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.column:disabled {
+  cursor: default;
+}
+
+.column:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.full {
+  opacity: 0.55;
+}
+
+.full:not(:disabled) {
+  cursor: not-allowed;
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--hole);
+  box-shadow: inset 0 3px 6px rgb(0 0 0 / 0.25);
+}
+
+.p1,
+.p2 {
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.18);
+}
+
+.p1 {
+  background: var(--p1);
+}
+
+.p2 {
+  background: var(--p2);
+}
+
+.p2::after {
+  content: '';
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  border: 3px solid rgb(255 255 255 / 0.75);
+}
+
+.dropped {
+  animation: drop 0.28s cubic-bezier(0.3, 0, 0.6, 1);
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(calc(var(--from) * -112%));
+  }
+}
+
+.finished .cell:not(.win) {
+  opacity: 0.35;
+}
+
+.win {
+  outline: 4px solid var(--win);
+  outline-offset: -2px;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  to {
+    filter: brightness(1.2);
+    transform: scale(1.06);
+  }
+}
+
+@media (hover: hover) {
+  .column:not(:disabled):not(.full):hover {
+    background: var(--column-hover);
+  }
+
+  .column:not(:disabled):not(.full):hover .next {
+    background: var(--ghost);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropped,
+  .win {
+    animation: none;
+  }
+}

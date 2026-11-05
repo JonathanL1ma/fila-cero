@@ -4,18 +4,24 @@
   "type": "module",
   "workspaces": [
     "game",
-    "bot"
+    "bot",
+    "web"
   ],
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "test": "vitest run --coverage",
+    "start": "npm run build -w web && node --env-file-if-exists=.env bot/src/index.js",
+    "dev": "node --env-file-if-exists=.env bot/src/index.js & npm run dev -w web",
     "bot": "node --env-file-if-exists=.env bot/src/index.js",
     "mock": "node --env-file-if-exists=.env bot/mock/arbiterMock.js"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@vitest/coverage-v8": "^5.1.0",
+    "jsdom": "^29.1.1",
     "vitest": "^5.1.0"
   }
 }
