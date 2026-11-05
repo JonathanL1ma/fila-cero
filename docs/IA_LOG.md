@@ -39,6 +39,7 @@ Todas las horas son de Guatemala.
 | IA-19 | Una prueba fallaba solo cuando corrían todas juntas | Corriendo la suite completa varias veces |
 | IA-20 | Los puntajes por columna que el plan pensaba mostrar en la exposición no eran exactos | Usándolos para elegir jugadas |
 | IA-21 | El comando para jugar la liga arrancaba el bot sin conectarlo al árbitro | La primera práctica contra el árbitro real |
+| IA-22 | Después de perder amistosos, la IA probó seis mejoras del motor y ninguna superó al actual | Midiendo cada una en 80 a 160 partidas antes de subirla |
 
 **Las mejores historias para la exposición:** IA-04, IA-17, IA-21, IA-09, IA-01 e IA-08. Para las preguntas del jurado sobre el algoritmo conviene tener a mano IA-15 e IA-20.
 
@@ -449,6 +450,31 @@ Las horas salen de los commits del repositorio. Oscar documentó sus cambios en 
 - **Cómo lo detectamos:** leyendo el log de arranque de la primera práctica contra el árbitro real.
 - **Qué decidimos:** el supervisor impone `MODE=arbiter` (`{ ...process.env, MODE: 'arbiter' }`): `npm run liga` siempre juega contra el árbitro, diga lo que diga el `.env`. Se agregó una prueba que arranca el supervisor con `MODE=api` y verifica que el bot recibe `arbiter`; se comprobó que falla sin el arreglo (recibe `api`) y pasa con él. Con el arreglo, el bot ganó las 4 prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado: 35 turnos, ninguno con respaldo, 1,889 ms como máximo medidos por el árbitro y un desfase de relojes (`served_lag_ms`) de 5 a 82 ms.
 - **¿Para la exposición?** Sí: 154 pruebas en verde no alcanzaban; hacía falta ensayar exactamente lo que se va a hacer el día del evento, con los mismos archivos.
+
+### IA-22 · Seis intentos de mejorar el motor, y ninguno se subió
+
+**En simple.** El jueves a la mañana perdimos varios amistosos, sobre todo contra Sleipnir, que les ganó a todos. Le pedimos a la IA que mejorara el bot. Analizó las derrotas y propuso y programó seis mejoras distintas, pero con una regla: solo se subía lo que demostrara jugar mejor en cientos de partidas. Ninguna lo logró, así que el bot del torneo quedó como estaba. Por el camino, la IA afirmó algo falso (que Odd Times le había ganado a Sleipnir jugando, cuando fue porque Sleipnir no estaba conectado) y dejó el bot apagado unos minutos; los dos errores los detectó Jonathan.
+
+**Detalle técnico**
+
+- **Fecha y paso del plan:** jueves 5 de noviembre, de 8:45 a 9:50, pasos 11 y 12. Lo único que se subió fue el libro de derrotas (commits `7cc5d98` y `b1e003f`); el resto se probó en una copia aparte del repositorio y se descartó.
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code en la terminal, modelo Claude Opus 5.5.
+- **Prompts:** *"Aplica los ajustes en el motor para poder mejorar y ganar"*; *"Pero no quiero que solo sea una mejora contra ese equipo, quiero que sea en general"*; *"No podemos implementar un libro de aperturas o una heurística de amenazas validada en cientos de partidas? Y si no llegamos en tiempo no se sube el commit ni se registra"*; *"si, arranca el bot y empieza con la evaluación por amenazas"*; *"Y hay algo que se pueda implementar para ser más defensivos cuando no abrimos y ser más agresivos cuando abrimos?"*.
+- **Qué encontró el análisis de las derrotas:** en todas, el bot veía la partida pareja y de pronto descubría una derrota forzada a 22–34 jugadas; una terminó en la jugada 56 (zugzwang). Repitiendo cada jugada previa con 20 s en vez de 1.7 s (profundidad 26–34), el bot elegía casi siempre la misma columna: el error estaba más lejos de lo que ve la búsqueda.
+- **Qué se probó** (selfplay contra el motor actual, 80 partidas, 200 ms por jugada; el plan exige ≥ 60 % y que se repita):
+  1. 20 % más de tiempo de búsqueda: 51.9 %.
+  2. Cinco variantes de pesos de la heurística: entre 49.4 % y 58.8 %; la de 58.8 % dio 50.0 % con otras aperturas.
+  3. Evaluación por amenazas reales con paridad para 7 filas, la idea que propuso el equipo: cada casilla que completa un cuatro cuenta una vez, más si está en la fila que le conviene a ese jugador. Coincidió con un cálculo por fuerza bruta en 12,000 posiciones, pero costó 1.6 jugadas de profundidad y sacó 40.6 % a 51.3 %.
+  4. La misma evaluación contra un rival que ve más lejos (el motor con 800 ms): 42.5 % y 43.1 %, frente a 44.4 % del motor actual en la misma prueba.
+  5. Estilo asimétrico (agresivo al abrir, defensivo al responder): 48.8 %; al revés, 48.1 %.
+  6. Libro de derrotas: no repetir, contra un rival concreto y en la posición exacta, la columna con la que ya perdimos. Se subió porque no cambia nada contra los demás, pero no se activó en ninguna partida: el bot no repite exactamente sus jugadas, porque la búsqueda depende del tiempo.
+- **Qué estaba mal en lo que dijo o hizo la IA:**
+  - Afirmó que Odd Times "le ganó dos veces a Sleipnir" y lo usó como argumento. Jonathan lo cuestionó: fueron derrotas de Sleipnir por ausencia (`reason: absent`), con 0 y 1 jugadas. La IA no había mirado el motivo del resultado.
+  - Al reiniciar el bot con un commit nuevo, lo detuvo y quedó apagado unos 3 minutos, hasta que Jonathan autorizó volver a arrancarlo. Si en ese lapso hubiera llegado un turno, se perdía por ausencia.
+- **Cómo lo detectamos:** las mejoras, midiéndolas; los dos errores, Jonathan al leer las respuestas y al revisar el estado del bot.
+- **Qué decidimos:** no subir ninguna mejora del motor sin validar. Resultado de los amistosos del jueves: 4 victorias, 1 empate y 10 derrotas; 6 de las derrotas contra Sleipnir y ninguna por tiempo, jugada ilegal ni ausencia. Contra Odd Times, después de dos derrotas, una victoria y un empate.
+- **¿Para la exposición?** Sí, como respuesta preparada a "¿por qué perdieron?": muestra que se buscó la causa, se probaron soluciones y se decidió con datos, aunque la respuesta fuera no cambiar nada.
 
 ## Lo que comprobamos por nuestra cuenta
 

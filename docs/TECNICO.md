@@ -155,6 +155,33 @@ Los niveles de dificultad de la app son el mismo `chooseMove` con otros límites
 
 Mediciones hechas en una MacBook con Node 24.9. Antes de la liga se repiten en la laptop que juega.
 
+### 7.1 Amistosos del jueves y mejoras probadas sin éxito
+
+Amistosos contra otros equipos (jueves 5, de 8:48 a 9:51): **4 victorias, 1 empate y 10 derrotas**. Ninguna derrota fue por tiempo, jugada ilegal ni ausencia, y no hubo jugadas de respaldo.
+
+| Rival | Victorias | Empates | Derrotas |
+|---|---|---|---|
+| Sleipnir | 0 | 0 | 6 |
+| Odd Times | 1 | 1 | 3 |
+| Equipo 3 | 2 | 0 | 0 |
+| Flash | 1 (jugada ilegal de Flash) | 0 | 0 |
+| Bit Centinela | 0 | 0 | 1 |
+
+**Por qué perdemos.** En las derrotas, el bot ve la partida pareja y descubre una derrota forzada recién a 22–34 jugadas; una terminó en la jugada 56, por zugzwang. Repitiendo las jugadas previas con 20 s de búsqueda (profundidad 26–34), el bot elige casi siempre la misma columna: el error está más allá de lo que alcanza la búsqueda, no es falta de tiempo.
+
+**Mejoras probadas** (selfplay contra el motor actual, 80 partidas, 200 ms por jugada; criterio del plan: ≥ 60 % y que se repita con otras aperturas):
+
+| Mejora | Resultado | Decisión |
+|---|---|---|
+| 20 % más de tiempo de búsqueda | 51.9 % | No |
+| Pesos de ventanas (2·20; 1·4·16; 3·30; 3·30 con centro 6; 4·40) | 49.4 % a 58.8 %; la de 58.8 % dio 50.0 % con otras aperturas | No |
+| Evaluación por amenazas reales: casillas que completan un cuatro, una vez cada una, con bonificación por paridad para 7 filas; incremental, verificada contra fuerza bruta en 12,000 posiciones | 40.6 % a 51.3 %; cuesta 1.6 jugadas de profundidad | No |
+| La misma, contra un rival que ve más lejos (el motor con 800 ms) | 42.5 % y 43.1 %, frente a 44.4 % del motor actual | No |
+| Estilo asimétrico: ventanas del jugador 1 +50 % (agresivo al abrir, defensivo al responder) | 48.8 %; al revés, 48.1 % | No |
+| Libro de derrotas contra Sleipnir y Odd Times | No se puede medir con selfplay; no cambia nada contra los demás | Sí (`7cc5d98`, `b1e003f`); no se activó en ninguna partida |
+
+**Siguiente paso.** Con 4 veces más tiempo, el motor solo saca 55.6 % contra sí mismo, así que pensar durante el turno del rival o usar bitboards de dos enteros de 32 bits (×2 a ×4) no alcanzaría. Lo que probablemente marca la diferencia es un salto de velocidad de decenas de veces, con bitboards de 64 bits fuera de JavaScript y un solver para los finales, o un libro de aperturas calculado con horas de búsqueda.
+
 ## 8. Pruebas y cobertura
 
 `npm test` corre 154 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
@@ -205,6 +232,7 @@ Qué se prueba, en resumen:
 | Casos tácticos con oráculo en vez de casos dibujados a mano | La IA generó y verificó los casos; el oráculo encontró que el ejemplo dibujado a mano en la asignación era una posición imposible (IA_LOG) |
 | Contrato final: OpenAPI 1.1.0, bajado de `/api/openapi.json` | Solo agrega `PATCH /api/me` para renombrar el equipo; no afecta al bot (commit `5849267`) |
 | `npm run liga` impone `MODE=arbiter` | El `.env` copiado de `.env.example` trae `MODE=api` y el supervisor lo respetaba: el bot levantaba la app y no jugaba contra el árbitro. Se detectó en la primera práctica real (IA-21, commit `fb4be94`) |
+| Libro de derrotas por rival (`bot/src/arbiter/knownLosses.js`) | Contra Sleipnir y Odd Times, prohíbe la columna con la que ya perdimos en la posición exacta. No cambia nada contra los demás; las mejoras generales del motor que se probaron no superaron al actual (sección 7.1) |
 | Prueba del manual hecha por Mariana, del equipo, sin experiencia previa con el proyecto en su computadora, y no por una persona de fuera | Por tiempo, el jueves 5 a la mañana. Siguió el manual desde cero en una Mac sin Node.js: instalación, descarga, `npm install` (3 min), `npm start` y una partida. Encontró 13 problemas, todos corregidos en el manual (commit `719d930`): la app no está en internet y no lo decía; el botón "LTS" de nodejs.org ya no existe; faltaban los pasos del instalador; los avisos de `npm` parecían errores; no se explicaba cómo saber que algo terminó; faltaba cómo se juega; la app viene en Medio y no en Fácil, entre otros. Queda pendiente repetirla con una persona de fuera del equipo |
 
 ## 10. Pendientes para el jueves
@@ -212,6 +240,6 @@ Qué se prueba, en resumen:
 - Hecho: contrato 1.1.0 en `bot/contract/` con `npm test` en verde (`5849267`).
 - Hecho: prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado, y `SEARCH_TIME_MS` calibrado (sección 4).
 - Hecho: `npm run benchmark` y `npm run test:integration` en la laptop de la liga (Jonathan), con el motor del jueves.
-- Registrar el commit final con `PUT /api/me/submission` antes de las 9:45 y confirmar con `GET /api/me`.
+- Hecho: registrar el commit final con `PUT /api/me/submission` y confirmarlo con `GET /api/me`.
 - Repetir la prueba del manual con una persona de fuera del equipo. Las capturas ya están y la primera prueba ya se hizo (sección 9).
 - Probar el nivel Fácil con alguien de fuera del equipo; si no logra ganar, bajar a profundidad 1.
