@@ -20,7 +20,7 @@ export function Controls({ state, onRestart, onPlayAgain }) {
 export function BotInsight({ analysis }) {
   if (!analysis) return null
   const text = analysis.depth
-    ? `El bot analizó ${analysis.depth} jugadas hacia adelante en ${analysis.elapsedMs} ms`
+    ? `El bot analizó ${analysis.depth} ${analysis.depth === 1 ? 'jugada' : 'jugadas'} hacia adelante en ${analysis.elapsedMs} ms`
     : `El bot vio una jugada obligada y respondió en ${analysis.elapsedMs} ms`
   return <p className={styles.insight}>{text}</p>
 }
