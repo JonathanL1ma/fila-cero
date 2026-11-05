@@ -62,14 +62,15 @@ describe('chooseMove: búsqueda', () => {
 
   it('en el tablero a una ficha de llenarse juega la última casilla', () => {
     const grid = drawn(
-      '2121212.',
-      '12121212',
-      '12121212',
+      '1212212.',
+      '12211121',
+      '21112121',
+      '12221212',
+      '21212112',
       '21212121',
-      '21212121',
-      '12121212',
-      '12121212',
+      '21112122',
     )
+    expect(playerToMove(grid)).toBe(2)
     expect(chooseMove(grid, playerToMove(grid)).column).toBe(7)
   })
 
