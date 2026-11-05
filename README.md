@@ -84,7 +84,7 @@ curl -X POST localhost:4000/api/practice -H 'Authorization: Bearer token-de-prue
 | `TEAM_TOKEN` | Token del equipo | (obligatorio en `arbiter`) |
 | `SEARCH_TIME_MS` | Tope de tiempo de búsqueda por jugada | `1700` |
 | `SAFETY_MS` | Margen que se resta a `deadline_ms` del árbitro | `1300` |
-| `SERVED_AT_GUARD` | `0` apaga el ajuste que acorta la búsqueda cuando un turno llega tarde según `served_at` (usar solo si el reloj de la laptop está desfasado) | `1` |
+| `SERVED_AT_GUARD` | `0` (o `false`, `no`, `off`) apaga el ajuste que acorta la búsqueda cuando un turno llega tarde según `served_at`. Usarlo solo si el reloj de la laptop está adelantado respecto del árbitro: se nota porque `served_lag_ms` sale alto (≳ 0.5 s) en todos los turnos y la consola avisa "búsqueda acotada" en cada uno | `1` |
 | `HOST` | Interfaz de la API y la app | `0.0.0.0` |
 | `PORT` | Puerto de la API y la app | `3001` |
 | `LOG_DIR` | Carpeta de `turns.jsonl` | `logs` |

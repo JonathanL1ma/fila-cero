@@ -27,8 +27,8 @@ describe('readConfig', () => {
   })
 
   it('SERVED_AT_GUARD=0 apaga el ajuste del presupuesto por served_at', () => {
-    expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: '0' }).servedAtGuard).toBe(false)
-    expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: '1' }).servedAtGuard).toBe(true)
+    for (const off of ['0', 'false', 'no', 'off', ' OFF ']) expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: off }).servedAtGuard).toBe(false)
+    for (const on of ['1', 'true', '']) expect(readConfig({ COMMIT: 'abc', SERVED_AT_GUARD: on }).servedAtGuard).toBe(true)
   })
 
   it('rechaza modos y números inválidos', () => {

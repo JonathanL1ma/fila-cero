@@ -93,14 +93,18 @@ El árbitro da `deadline_ms` (3,000 ms) desde `served_at`. Ese reloj arranca en 
 | Tramo | Valor por defecto |
 |---|---|
 | Presupuesto de búsqueda: `min(SEARCH_TIME_MS, deadline_ms − SAFETY_MS) − tiempo ya transcurrido` | 1,700 ms |
-| Tope si el turno llegó tarde: `deadline_ms − (ahora − served_at) − 700 ms`, si es menor | no se activa con atrasos normales (< ~600 ms) |
+| Tope si el turno llegó tarde: `deadline_ms − (ahora − served_at) − 700 ms`, si es menor | se activa con atrasos de más de `deadline_ms − 700 − presupuesto normal`: ~600 ms con los valores por defecto (menos si se sube `SEARCH_TIME_MS`) |
 | El motor revisa el reloj | cada 1,024 nodos |
 | Watchdog en el hilo principal | presupuesto + 500 ms |
 | Tiempo máximo del `POST` | lo que quede del plazo (mínimo 300 ms) |
 | Reintentos del `POST` ante fallas de red | mientras queden más de 200 ms |
 
 - **Watchdog**: el hilo principal compite el resultado del worker contra un temporizador. Si el temporizador gana (worker colgado o con error), envía la jugada de respaldo, termina el worker y crea otro.
-- **Turnos que llegan tarde.** Si el bot se reinicia a mitad de un turno, o la red tarda en entregarlo, el turno llega con parte del plazo gastado: el reloj del árbitro corre desde `served_at`. Por eso el presupuesto también se acota con `deadline_ms − (ahora − served_at) − 700 ms`. Solo puede acortar la búsqueda: si el reloj de la laptop está atrasado respecto del árbitro, el atraso sale negativo y se ignora; si sale mayor que el plazo más un segundo, son relojes desfasados y también se ignora. `SERVED_AT_GUARD=0` lo apaga. Cada turno registra el atraso en `logs/turns.jsonl` (`served_lag_ms`) y, si acortó la búsqueda, avisa en la consola. En las prácticas del jueves conviene mirar ese valor: tiene que ser chico (la bajada por la red). Si es sistemáticamente grande, el reloj de la laptop está adelantado.
+- **Turnos que llegan tarde.** Si el bot se reinicia a mitad de un turno, o la red tarda en entregarlo, el turno llega con parte del plazo gastado: el reloj del árbitro corre desde `served_at`. Por eso el presupuesto también se acota con `deadline_ms − (ahora − served_at) − 700 ms`. Solo puede acortar la búsqueda, nunca alargarla, así que no crea derrotas por tiempo nuevas. Depende de que los relojes estén razonablemente sincronizados:
+  - **Laptop atrasada respecto del árbitro**: el atraso sale menor (o negativo, y se ignora); el ajuste protege menos, pero el bot juega igual que antes.
+  - **Laptop adelantada**: el atraso sale mayor y, a partir de unos 0.6 s de desfase, se acortan las búsquedas de todos los turnos y el bot juega más débil (con 2.3 s o más, busca solo 50 ms). Si el atraso es igual o mayor que el plazo, se ignora.
+  - **Diagnóstico**: cada turno registra el atraso medido en `logs/turns.jsonl` (`served_lag_ms`, aunque no se use) y la consola avisa cada vez que acorta una búsqueda. En las primeras prácticas del jueves, `served_lag_ms` tiene que ser chico (la bajada por la red) y no tiene que haber avisos. Si hay avisos en todos los turnos, sincronizar el reloj (`sudo sntp -sS time.apple.com` en macOS) o apagar el ajuste con `SERVED_AT_GUARD=0` y relanzar.
+  - Una revisión independiente lo reprodujo de punta a punta: laptop adelantada 0.7 s → búsquedas de 1,600 ms; 1.5 s → 800 ms; 2.5 s → 50 ms; en ningún caso hubo derrotas por tiempo.
 - **Ensayo del día del evento** (árbitro simulado, bot con `npm run liga`):
   - `kill -9` a mitad de un turno: sin el ajuste se perdió la partida por tiempo (relanzar ~2 s + buscar 1.7 s). Con el ajuste, el turno llegó 2,328 ms tarde, se buscó 50 ms y el árbitro registró 2,381 ms: partida salvada y ganada.
   - Bajada lenta de 1.3 s, simulada con un proxy que retiene los turnos: sin el ajuste, 2 de 2 partidas perdidas por tiempo. Con el ajuste, 4 de 4 ganadas, peor caso 2,305 ms y profundidad media 13.8.
@@ -153,7 +157,7 @@ Mediciones hechas en una MacBook con Node 24.9. Antes de la liga se repiten en l
 
 ## 8. Pruebas y cobertura
 
-`npm test` corre 151 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
+`npm test` corre 154 pruebas en tres proyectos de Vitest (`game` y `bot` en Node, `web` en jsdom), en unos 7 segundos.
 
 | Carpeta | Líneas cubiertas |
 |---|---|

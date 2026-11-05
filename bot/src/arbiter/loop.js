@@ -77,7 +77,7 @@ export async function runArbiterLoop({
       scores: decision.scores,
       search_ms: decision.elapsedMs === undefined ? undefined : Math.round(decision.elapsedMs),
       e2e_ms: Math.round(now() - receivedAt),
-      served_lag_ms: decision.servedLagMs == null ? undefined : Math.round(decision.servedLagMs),
+      served_lag_ms: decision.servedLagRawMs == null ? undefined : Math.round(decision.servedLagRawMs),
       fallback: decision.fallback || undefined,
       cached: decision.cached || undefined,
       attempts,

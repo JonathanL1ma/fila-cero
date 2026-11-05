@@ -23,14 +23,20 @@ export function fallbackMove(grid, player, legal, lastIteration) {
 // y que el árbitro la reciba antes del plazo.
 const LATE_MARGIN_MS = 700
 
-// Milisegundos desde served_at (reloj del árbitro) hasta `wallNow` (reloj local), o null si no
-// se puede usar. Un atraso negativo, o mayor que el plazo más un segundo, no es un turno
-// tardío sino relojes desfasados, y se ignora.
-export function servedLagMs(turn, wallNow) {
+// Milisegundos desde served_at (reloj del árbitro) hasta `wallNow` (reloj local), tal cual, o
+// null si served_at no se puede leer. Se registra en cada turno para diagnosticar el desfase
+// entre los relojes.
+export function rawServedLagMs(turn, wallNow) {
   const servedAt = Date.parse(turn.served_at)
-  if (!Number.isFinite(servedAt)) return null
-  const lag = wallNow - servedAt
-  return lag >= 0 && lag <= turn.deadline_ms + 1000 ? lag : null
+  return Number.isFinite(servedAt) ? wallNow - servedAt : null
+}
+
+// El atraso que se usa para acotar el presupuesto, solo si es creíble. Uno negativo, o igual o
+// mayor que el plazo (esa partida ya estaría perdida), no es un turno tardío sino relojes
+// desfasados, y se ignora.
+export function servedLagMs(turn, wallNow) {
+  const lag = rawServedLagMs(turn, wallNow)
+  return lag !== null && lag >= 0 && lag < Number(turn.deadline_ms) ? lag : null
 }
 
 export function createTurnPolicy({
@@ -42,7 +48,6 @@ export function createTurnPolicy({
   now = () => performance.now(),
   wallNow = () => Date.now(),
   useServedAt = true,
-  lateMarginMs = LATE_MARGIN_MS,
   onError = () => {},
 }) {
   return async function decide(turn, receivedAt) {
@@ -50,11 +55,13 @@ export function createTurnPolicy({
     // a mitad de un turno, o la red tardó en entregarlo), el presupuesto medido desde la
     // recepción no alcanza: se acota también por lo que queda del plazo real. Solo puede
     // acortar la búsqueda, nunca alargarla.
-    const lag = useServedAt ? servedLagMs(turn, wallNow()) : null
-    const fromReceipt = Math.min(searchTimeMs, turn.deadline_ms - safetyMs) - (now() - receivedAt)
-    const fromServed = lag === null ? Infinity : turn.deadline_ms - lag - lateMarginMs
+    const deadlineMs = Number(turn.deadline_ms)
+    const wall = wallNow()
+    const lag = useServedAt ? servedLagMs(turn, wall) : null
+    const fromReceipt = Math.min(searchTimeMs, deadlineMs - safetyMs) - (now() - receivedAt)
+    const fromServed = lag === null ? Infinity : deadlineMs - lag - LATE_MARGIN_MS
     const budget = Math.max(50, Math.min(fromReceipt, fromServed))
-    const late = { servedLagMs: lag, shortened: fromServed < fromReceipt }
+    const late = { servedLagMs: lag, servedLagRawMs: rawServedLagMs(turn, wall), shortened: budget < Math.max(50, fromReceipt) }
     let last = null
     let timer
     const watchdog = new Promise((resolve) => {

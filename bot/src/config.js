@@ -36,7 +36,7 @@ export function readConfig(env = process.env) {
     token: env.TEAM_TOKEN || '',
     searchTimeMs: int(env, 'SEARCH_TIME_MS', 1700),
     safetyMs: int(env, 'SAFETY_MS', 1300),
-    servedAtGuard: env.SERVED_AT_GUARD !== '0',
+    servedAtGuard: !['0', 'false', 'no', 'off'].includes(String(env.SERVED_AT_GUARD ?? '').trim().toLowerCase()),
     host: env.HOST || '0.0.0.0',
     port: int(env, 'PORT', 3001),
     logDir: env.LOG_DIR || 'logs',
