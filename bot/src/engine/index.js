@@ -1,8 +1,15 @@
 import { CELLS, CENTER_ORDER, fromGrid } from '@fila-cero/game'
 import { createClock, TIMEOUT } from './clock.js'
 import { createSearch, isWinScore } from './search.js'
+import { createTT } from './tt.js'
 
 export { WIN, isWinScore } from './search.js'
+
+let sharedTT = null
+
+export function resetTranspositionTable() {
+  sharedTT?.clear()
+}
 
 export function tacticalMove(board, player) {
   const legal = CENTER_ORDER.filter((col) => board.canPlay(col))
@@ -14,7 +21,7 @@ export function tacticalMove(board, player) {
   return null
 }
 
-export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIteration } = {}) {
+export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIteration, tt = true } = {}) {
   const start = performance.now()
   const board = fromGrid(grid)
   const result = { column: null, depth: 0, score: 0, scores: null, nodes: 0, elapsedMs: 0 }
@@ -28,7 +35,8 @@ export function chooseMove(grid, player, { timeMs = 1700, maxDepth = CELLS, onIt
   }
 
   const clock = createClock(timeMs)
-  const search = createSearch(board, clock)
+  if (tt && !sharedTT) sharedTT = createTT()
+  const search = createSearch(board, clock, tt ? sharedTT : null)
   let order = CENTER_ORDER.filter((col) => board.canPlay(col))
   result.column = order[0]
   const limit = Math.min(maxDepth, CELLS - board.count)

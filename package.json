@@ -16,7 +16,9 @@
     "dev": "node --env-file-if-exists=.env bot/src/index.js & npm run dev -w web",
     "bot": "node --env-file-if-exists=.env bot/src/index.js",
     "mock": "node --env-file-if-exists=.env bot/mock/arbiterMock.js",
-    "liga": "node --env-file-if-exists=.env bot/scripts/supervise.js"
+    "liga": "node --env-file-if-exists=.env bot/scripts/supervise.js",
+    "benchmark": "node bot/scripts/benchmark.js",
+    "selfplay": "node bot/scripts/selfplay.js"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",

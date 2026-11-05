@@ -42,11 +42,13 @@ export function buildServer({ engine, staticDir, arbiterUrl, version = '1.0.0', 
     if (outcome(board).state !== 'playing') {
       return reply.code(400).send({ ok: false, error: 'validation', message: 'La partida ya terminó' })
     }
+    const depthLimit = clamp(maxDepth, 1, CELLS)
     const result = await engine.search({
       grid: board,
       player,
       timeMs: clamp(timeMs, MIN_TIME_MS, MAX_TIME_MS),
-      maxDepth: clamp(maxDepth, 1, CELLS),
+      maxDepth: depthLimit,
+      tt: depthLimit === CELLS,
     })
     const { column, depth, score, scores, elapsedMs } = result
     return { column, depth, score, scores, elapsedMs: Math.round(elapsedMs) }
