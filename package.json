@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "vitest run --coverage",
+    "bot": "node --env-file-if-exists=.env bot/src/index.js",
     "mock": "node --env-file-if-exists=.env bot/mock/arbiterMock.js"
   },
   "devDependencies": {
