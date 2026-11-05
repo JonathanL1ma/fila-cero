@@ -4,7 +4,7 @@ import { EXACT, LOWER, UPPER, ZOBRIST_CHECK, ZOBRIST_INDEX, hashCells, zobristOf
 
 export const WIN = 1_000_000
 export const INF = WIN + 1
-const CLOCK_EVERY = 4096
+const CLOCK_EVERY = 1024
 
 export const isWinScore = (score) => Math.abs(score) > WIN - CELLS - 1
 
