@@ -6,9 +6,13 @@
 //
 // Revisa que cada tablero sea alcanzable (existe un orden de jugadas alternadas que lo
 // produce, sin un cuatro en línea previo) y que `best` y `avoid` sean exactamente las
-// columnas correctas. Uso: node bot/scripts/verify-tactical-cases.js
+// columnas correctas. Uso: node bot/scripts/verify-tactical-cases.js (también corre dentro de
+// npm test, desde bot/test/engine/tactical.test.js).
+import { pathToFileURL } from 'node:url'
 import { tacticalCases } from '../test/fixtures/tactical-cases.js'
 
+// Excepción consciente a la regla de AGENTS.md de importar las constantes de @fila-cero/game:
+// el oráculo no importa nada del juego para que un error ahí no pueda esconderse aquí.
 const COLS = 8
 const ROWS = 7
 const MAX_PLIES = 5
@@ -239,25 +243,34 @@ function expectedFor(testCase, state, p) {
 
 const sameColumns = (a = [], b = []) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort())
 
-let failures = 0
-for (const testCase of tacticalCases) {
-  const { grid, errors } = parseRows(testCase.rows)
-  const problems = [...errors]
-  if (!errors.length) {
-    const unreachable = isReachable(grid)
-    if (unreachable) problems.push(unreachable)
-    const { p1, p2 } = countPieces(grid)
-    const toMove = p1 === p2 ? 1 : 2
-    if (toMove !== testCase.toMove) problems.push(`toMove dice ${testCase.toMove}, pero por el conteo mueve el ${toMove}`)
-    if (!unreachable) {
-      const expected = expectedFor(testCase, makeState(grid), testCase.toMove)
-      problems.push(...expected.problems)
-      if (!sameColumns(expected.best, testCase.best)) problems.push(`best dice [${testCase.best}], el oráculo dice [${expected.best}]`)
-      if (expected.avoid && !sameColumns(expected.avoid, testCase.avoid)) problems.push(`avoid dice [${testCase.avoid}], el oráculo dice [${expected.avoid}]`)
+// Devuelve, para cada caso, la lista de problemas que encontró el oráculo (vacía si está bien).
+export function verifyTacticalCases(cases) {
+  return cases.map((testCase) => {
+    const { grid, errors } = parseRows(testCase.rows)
+    const problems = [...errors]
+    if (!errors.length) {
+      const unreachable = isReachable(grid)
+      if (unreachable) problems.push(unreachable)
+      const { p1, p2 } = countPieces(grid)
+      const toMove = p1 === p2 ? 1 : 2
+      if (toMove !== testCase.toMove) problems.push(`toMove dice ${testCase.toMove}, pero por el conteo mueve el ${toMove}`)
+      if (!unreachable) {
+        const expected = expectedFor(testCase, makeState(grid), testCase.toMove)
+        problems.push(...expected.problems)
+        if (!sameColumns(expected.best, testCase.best)) problems.push(`best dice [${testCase.best}], el oráculo dice [${expected.best}]`)
+        if (expected.avoid && !sameColumns(expected.avoid, testCase.avoid)) problems.push(`avoid dice [${testCase.avoid}], el oráculo dice [${expected.avoid}]`)
+      }
     }
-  }
-  if (problems.length) failures++
-  console.log(`${problems.length ? 'FALLA' : 'ok   '}  ${testCase.id}${problems.map((p) => `\n         - ${p}`).join('')}`)
+    return { id: testCase.id, problems }
+  })
 }
-console.log(`\n${tacticalCases.length - failures}/${tacticalCases.length} casos verificados`)
-process.exitCode = failures ? 1 : 0
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const results = verifyTacticalCases(tacticalCases)
+  for (const { id, problems } of results) {
+    console.log(`${problems.length ? 'FALLA' : 'ok   '}  ${id}${problems.map((p) => `\n         - ${p}`).join('')}`)
+  }
+  const failures = results.filter(({ problems }) => problems.length).length
+  console.log(`\n${results.length - failures}/${results.length} casos verificados`)
+  process.exitCode = failures ? 1 : 0
+}

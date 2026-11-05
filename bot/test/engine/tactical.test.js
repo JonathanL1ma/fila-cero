@@ -3,8 +3,13 @@ import { outcome, playerToMove, validateGrid } from '@fila-cero/game'
 import { chooseMove, WIN } from '../../src/engine/index.js'
 import { tacticalCases } from '../fixtures/tactical-cases.js'
 import { drawn } from '../helpers.js'
+import { verifyTacticalCases } from '../../scripts/verify-tactical-cases.js'
 
 const SEARCH = { timeMs: 500, maxDepth: 8 }
+
+it('el oráculo de fuerza bruta confirma la respuesta de cada caso táctico', () => {
+  expect(verifyTacticalCases(tacticalCases).filter(({ problems }) => problems.length)).toEqual([])
+})
 
 describe.each(tacticalCases)('caso táctico $id', (testCase) => {
   const grid = drawn(...testCase.rows)
