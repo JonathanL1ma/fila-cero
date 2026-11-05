@@ -1,14 +1,10 @@
 import { COLUMNS, ROWS, CONNECT } from './constants.js'
 
-const DIRECTIONS = [
-  [0, 1],
-  [1, 0],
-  [1, 1],
-  [1, -1],
-]
 
+// Las cuatro direcciones de una línea: horizontal, vertical y las dos diagonales.
 const ROW_STEPS = [0, 1, 1, 1]
 const COL_STEPS = [1, 0, 1, -1]
+const DIRECTIONS = ROW_STEPS.map((dr, d) => [dr, COL_STEPS[d]])
 
 // Indica si una ficha de `player` en (row, col) completa una línea, sin crear arreglos:
 // es la versión rápida que usa la búsqueda. La casilla misma no se lee, así que sirve

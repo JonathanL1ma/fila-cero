@@ -1,4 +1,4 @@
-import { COLUMNS, ROWS, CONNECT } from '@fila-cero/game'
+import { CELLS, COLUMNS, ROWS, CONNECT } from '@fila-cero/game'
 
 const DIRECTIONS = [
   [0, 1],
@@ -19,14 +19,15 @@ for (let row = 0; row < ROWS; row++) {
   }
 }
 
-const WINDOW_WEIGHT = [0, 0, 2, 10]
+// Puntaje de una ventana según cuántas fichas tiene de un solo jugador. Cuatro fichas es
+// victoria y lo resuelve la búsqueda; vale 0 para que la evaluación esté definida igual.
+const WINDOW_SCORE = [0, 0, 2, 10, 0]
 const CENTER_COLUMNS = [Math.floor((COLUMNS - 1) / 2), Math.ceil((COLUMNS - 1) / 2)]
 const CENTER_BONUS = 3
 
-const WINDOW_SCORE = [...WINDOW_WEIGHT, 0]
-const CELL_WINDOWS = Array.from({ length: ROWS * COLUMNS }, () => [])
+const CELL_WINDOWS = Array.from({ length: CELLS }, () => [])
 WINDOWS.forEach((window, id) => window.forEach((idx) => CELL_WINDOWS[idx].push(id)))
-const IS_CENTER = Array.from({ length: ROWS * COLUMNS }, (_, idx) => CENTER_COLUMNS.includes(idx % COLUMNS))
+const IS_CENTER = Array.from({ length: CELLS }, (_, idx) => CENTER_COLUMNS.includes(idx % COLUMNS))
 
 // Aporte de una ventana desde el punto de vista del jugador 1.
 const windowScore = (ones, twos) => (twos === 0 ? WINDOW_SCORE[ones] : 0) - (ones === 0 ? WINDOW_SCORE[twos] : 0)
@@ -58,6 +59,9 @@ export function createIncrementalEvaluation(cells) {
   }
 }
 
+// Versión directa de la heurística, recorriendo las 107 ventanas. La búsqueda usa
+// createIncrementalEvaluation(); esta queda como referencia legible y para las pruebas,
+// que verifican que las dos den siempre lo mismo.
 export function evaluate(cells, player) {
   let score = 0
   for (const window of WINDOWS) {
