@@ -1,5 +1,5 @@
 import { CELLS, COLUMNS, CENTER_ORDER } from '@fila-cero/game'
-import { evaluate } from './evaluate.js'
+import { createIncrementalEvaluation } from './evaluate.js'
 import { EXACT, LOWER, UPPER, ZOBRIST_CHECK, ZOBRIST_INDEX, hashCells, zobristOffset } from './tt.js'
 
 export const WIN = 1_000_000
@@ -14,10 +14,13 @@ const fromTT = (score, ply) => (score > WIN - CELLS - 1 ? score - ply : score < 
 export function createSearch(board, clock, tt = null) {
   const state = { nodes: 0 }
   let [h1, h2] = hashCells(board.cells)
+  const evaluation = createIncrementalEvaluation(board.cells)
 
   function play(col, player) {
     const row = board.play(col, player)
-    const z = zobristOffset(player, row * COLUMNS + col)
+    const idx = row * COLUMNS + col
+    evaluation.add(idx, player)
+    const z = zobristOffset(player, idx)
     h1 ^= ZOBRIST_INDEX[z]
     h2 ^= ZOBRIST_CHECK[z]
     return z
@@ -25,6 +28,7 @@ export function createSearch(board, clock, tt = null) {
 
   function undo(col, z) {
     board.undo(col)
+    evaluation.remove(z % CELLS, z < CELLS ? 1 : 2)
     h1 ^= ZOBRIST_INDEX[z]
     h2 ^= ZOBRIST_CHECK[z]
   }
@@ -39,7 +43,7 @@ export function createSearch(board, clock, tt = null) {
       if (board.isWinningMove(col, player)) return WIN - ply - 1
     }
     if (board.count >= CELLS - 1) return 0
-    if (depth === 0) return evaluate(board.cells, player)
+    if (depth === 0) return evaluation.score(player)
 
     const alphaOrig = alpha
     let ttMove = -1

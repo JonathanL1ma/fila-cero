@@ -1,5 +1,5 @@
 import { COLUMNS, ROWS, CELLS } from './constants.js'
-import { winningCellsAt } from './rules.js'
+import { completesLine, winningCellsAt } from './rules.js'
 
 export class Board {
   constructor() {
@@ -43,9 +43,6 @@ export class Board {
 
   isWinningMove(col, player) {
     if (!this.canPlay(col)) return false
-    const row = this.play(col, player)
-    const wins = winningCellsAt(this.cells, row, col) !== null
-    this.undo(col)
-    return wins
+    return completesLine(this.cells, this.heights[col], col, player)
   }
 }
