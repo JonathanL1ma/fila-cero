@@ -38,8 +38,9 @@ Todas las horas son de Guatemala.
 | IA-18 | Al sacar las capturas del manual aparecieron tres errores de la app | Mirando las capturas |
 | IA-19 | Una prueba fallaba solo cuando corrían todas juntas | Corriendo la suite completa varias veces |
 | IA-20 | Los puntajes por columna que el plan pensaba mostrar en la exposición no eran exactos | Usándolos para elegir jugadas |
+| IA-21 | El comando para jugar la liga arrancaba el bot sin conectarlo al árbitro | La primera práctica contra el árbitro real |
 
-**Las mejores historias para la exposición:** IA-04, IA-17, IA-09, IA-01 e IA-08. Para las preguntas del jurado sobre el algoritmo conviene tener a mano IA-15 e IA-20.
+**Las mejores historias para la exposición:** IA-04, IA-17, IA-21, IA-09, IA-01 e IA-08. Para las preguntas del jurado sobre el algoritmo conviene tener a mano IA-15 e IA-20.
 
 ## Lo que aprendimos
 
@@ -432,6 +433,22 @@ Las horas salen de los commits del repositorio. Oscar documentó sus cambios en 
 - **Cómo lo detectamos:** Oscar, al documentar los límites de sus mediciones. Por otro lado, al sacar las capturas, la sesión de Mariana intentó usar esos puntajes para elegir jugadas: en el tablero vacío, siete de las ocho columnas daban exactamente −1 y la estrategia no funcionó, hasta que se cambió por analizar cada jugada por separado.
 - **Qué decidimos:** la app no muestra los puntajes por columna. Para la exposición, si se quieren mostrar posiciones reales con el valor de cada columna, hay que calcular cada uno por separado: jugar esa columna y analizar la posición resultante.
 - **¿Para la exposición?** Sí, como respuesta preparada: si el jurado pregunta por los puntajes, explica bien cómo funciona la poda.
+
+### IA-21 · El comando para jugar la liga arrancaba el bot sin conectarlo al árbitro
+
+**En simple.** El jueves a primera hora, con el token y la dirección del árbitro real, se preparó la configuración del bot copiando el archivo de ejemplo del repositorio y se arrancó con el comando de la liga. El bot dijo que estaba listo, pero en modo "app": abrió la página para jugar contra personas y **nunca le preguntó al árbitro por sus turnos**. El archivo de ejemplo traía ese modo, y el comando de la liga lo respetaba en vez de imponer el suyo. En la liga, el bot habría quedado encendido sin jugar, y cada partida se habría perdido por ausencia a los 30 segundos: 0 de los 25 puntos del algoritmo. Lo vimos al leer las dos primeras líneas que escribió el bot al arrancar.
+
+**Detalle técnico**
+
+- **Fecha y paso del plan:** jueves 5 de noviembre, 8:18, paso 10 (commit `fb4be94`). El error venía de la combinación de `.env.example` (paso 1, `d2e092f`) con el supervisor (paso 8, `231ec8a`).
+- **Quién:** Jonathan.
+- **Herramienta:** Claude Code en la terminal, modelo Claude Opus 5.5.
+- **Prompt:** *"si, revisa el manual y ya nos dieron el token y todo, se puede hacer una prueba contra la casa entonces tengo que estar corriendo la app?"*.
+- **Qué estaba mal:** el supervisor arrancaba el bot con `env: { MODE: 'arbiter', ...process.env }`. Como `process.env` va después, el `MODE=api` del `.env` (copiado de `.env.example` y cargado con `--env-file-if-exists`) pisaba el valor por defecto. El bot escribió `MODE=api` y "App y API en http://localhost:3001", en lugar de "Conectado al árbitro".
+- **Por qué no lo vio ninguna prueba:** la prueba del supervisor usaba un bot falso que no miraba `MODE`, la integración arma el bot sin pasar por el supervisor, y el ensayo con `kill -9` de la noche anterior (paso 8) se hizo pasando las variables a mano, sin un `.env` copiado del ejemplo. Era la primera vez que alguien seguía los pasos del README tal cual.
+- **Cómo lo detectamos:** leyendo el log de arranque de la primera práctica contra el árbitro real.
+- **Qué decidimos:** el supervisor impone `MODE=arbiter` (`{ ...process.env, MODE: 'arbiter' }`): `npm run liga` siempre juega contra el árbitro, diga lo que diga el `.env`. Se agregó una prueba que arranca el supervisor con `MODE=api` y verifica que el bot recibe `arbiter`; se comprobó que falla sin el arreglo (recibe `api`) y pasa con él. Con el arreglo, el bot ganó las 4 prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado: 35 turnos, ninguno con respaldo, 1,889 ms como máximo medidos por el árbitro y un desfase de relojes (`served_lag_ms`) de 5 a 82 ms.
+- **¿Para la exposición?** Sí: 154 pruebas en verde no alcanzaban; hacía falta ensayar exactamente lo que se va a hacer el día del evento, con los mismos archivos.
 
 ## Lo que comprobamos por nuestra cuenta
 

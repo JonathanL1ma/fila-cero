@@ -112,7 +112,7 @@ El árbitro da `deadline_ms` (3,000 ms) desde `served_at`. Ese reloj arranca en 
 - **Jugada de respaldo**, en orden: la mejor jugada de la última iteración completa con profundidad ≥ 2; ganar ya; bloquear; la primera columna desde el centro que no le deje al rival una victoria justo encima; la primera legal. Siempre se valida contra `legal_moves`.
 - **Worker caliente**: al arrancar, cada worker hace una búsqueda de 300 ms para que V8 compile el código antes del primer turno real.
 
-**Medición**: con 1,700 ms de búsqueda, el mock midió **1,703 a 1,711 ms** desde `served_at` hasta la jugada (en la misma laptop, sin red). Con caos (latencia de hasta 150 ms y respuestas perdidas) y 200 ms de búsqueda, el peor caso de punta a punta fue 427 ms. El jueves se calibra `SEARCH_TIME_MS` con el campo `ms` de `GET /api/games/{id}` en las prácticas contra el árbitro real.
+**Medición**: con 1,700 ms de búsqueda, el mock midió **1,703 a 1,711 ms** desde `served_at` hasta la jugada (en la misma laptop, sin red). Con caos (latencia de hasta 150 ms y respuestas perdidas) y 200 ms de búsqueda, el peor caso de punta a punta fue 427 ms. **Contra el árbitro real** (jueves 5, 8:20, 4 prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado, todas ganadas): el campo `ms` de `GET /api/games/{id}`, que incluye la red, dio **1,889 ms como máximo** y entre 1,147 y 1,483 ms de promedio por partida. Quedan unos 1,100 ms de margen, así que `SEARCH_TIME_MS` se queda en 1,700. El desfase de relojes (`served_lag_ms`) fue de 5 a 82 ms, así que el tope por `served_at` nunca acortó una búsqueda. En 35 turnos no hubo respaldos y la búsqueda llegó a profundidades de 16 a 26.
 
 ## 5. Cliente del árbitro
 
@@ -203,12 +203,15 @@ Qué se prueba, en resumen:
 | El presupuesto también se acota con `served_at` cuando el turno llega tarde | El plan medía solo desde la recepción para no depender de relojes sincronizados. El ensayo del día del evento mostró que así se pierde la partida si el bot se reinicia a mitad de un turno o si la red tarda en entregarlo. El tope solo acorta, ignora atrasos imposibles y se puede apagar (sección 4) |
 | Probados y descartados: orden por casillas ganadoras y paridad de amenazas | No mejoraron en duelos de 100 a 120 partidas (secciones 3.2 y 3.4); el plan pide ≥ 60 % para adoptar un cambio |
 | Casos tácticos con oráculo en vez de casos dibujados a mano | La IA generó y verificó los casos; el oráculo encontró que el ejemplo dibujado a mano en la asignación era una posición imposible (IA_LOG) |
+| Contrato final: OpenAPI 1.1.0, bajado de `/api/openapi.json` | Solo agrega `PATCH /api/me` para renombrar el equipo; no afecta al bot (commit `5849267`) |
+| `npm run liga` impone `MODE=arbiter` | El `.env` copiado de `.env.example` trae `MODE=api` y el supervisor lo respetaba: el bot levantaba la app y no jugaba contra el árbitro. Se detectó en la primera práctica real (IA-21, commit `fb4be94`) |
 | Prueba del manual hecha por Mariana, del equipo, sin experiencia previa con el proyecto en su computadora, y no por una persona de fuera | Por tiempo, el jueves 5 a la mañana. Siguió el manual desde cero en una Mac sin Node.js: instalación, descarga, `npm install` (3 min), `npm start` y una partida. Encontró 13 problemas, todos corregidos en el manual (commit `719d930`): la app no está en internet y no lo decía; el botón "LTS" de nodejs.org ya no existe; faltaban los pasos del instalador; los avisos de `npm` parecían errores; no se explicaba cómo saber que algo terminó; faltaba cómo se juega; la app viene en Medio y no en Fácil, entre otros. Queda pendiente repetirla con una persona de fuera del equipo |
 
 ## 10. Pendientes para el jueves
 
-- Reemplazar `bot/contract/arbitro-openapi.json` por el que sirve el árbitro en `/api/openapi.json` y correr `npm test`.
-- Prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado, y calibrar `SEARCH_TIME_MS` con el campo `ms`.
-- Repetir `npm run benchmark` y `npm run test:integration` en la laptop de la liga.
+- Hecho: contrato 1.1.0 en `bot/contract/` con `npm test` en verde (`5849267`).
+- Hecho: prácticas contra `casa-aleatorio` y `casa-basico` abriendo cada lado, y `SEARCH_TIME_MS` calibrado (sección 4).
+- Hecho: `npm run benchmark` y `npm run test:integration` en la laptop de la liga (Jonathan), con el motor del jueves.
+- Registrar el commit final con `PUT /api/me/submission` antes de las 9:45 y confirmar con `GET /api/me`.
 - Repetir la prueba del manual con una persona de fuera del equipo. Las capturas ya están y la primera prueba ya se hizo (sección 9).
 - Probar el nivel Fácil con alguien de fuera del equipo; si no logra ganar, bajar a profundidad 1.
