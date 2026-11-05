@@ -27,6 +27,7 @@ La aplicación **no está en internet**: no hay una página a la que entrar desd
 - **Es tu primera vez y no sabes cómo empezar** → [Primera vez: preparar la computadora](#primera-vez-preparar-la-computadora). Lleva unos 10 minutos y se hace una sola vez.
 - **Ya la usaste antes en esta computadora** → [Cada vez que quieras jugar](#cada-vez-que-quieras-jugar).
 - **Alguien ya la dejó abierta para ti** → [Si ya está abierta](#si-ya-está-abierta).
+- **Quieres jugar desde un teléfono** → [Desde un teléfono](#desde-un-teléfono). Necesitas una computadora que ya tenga la aplicación abierta.
 
 ### Primera vez: preparar la computadora
 
@@ -59,7 +60,7 @@ La aplicación **no está en internet**: no hay una página a la que entrar desd
 1. Abre la **Terminal**.
 2. Escribe `cd ` (con un espacio al final), arrastra la carpeta **fila-cero-main** a la ventana y pulsa Enter.
 3. Escribe `npm start` y pulsa Enter. Van a aparecer varias líneas mientras se prepara la aplicación: espera, tarda unos segundos. Entre ellas pueden aparecer ".env not found. Continuing without it." y "commit desconocido": son normales, no hace falta hacer nada.
-4. Cuando aparezca el mensaje **"App y API en http://localhost:3001"**, abre el navegador (Chrome, Safari, Edge o Firefox) y entra a **http://localhost:3001**. Esa es la dirección de la aplicación en tu computadora.
+4. Cuando aparezca el mensaje **"App y API en http://localhost:3001"**, abre el navegador (Chrome, Safari, Edge o Firefox) y entra a **http://localhost:3001**. Esa es la dirección de la aplicación **en esa misma computadora**. "localhost" significa "este mismo aparato": si la abres en un teléfono, el teléfono la busca en sí mismo y no la encuentra. Para jugar desde un teléfono, ve a [Desde un teléfono](#desde-un-teléfono).
 5. Deja la Terminal abierta mientras juegas. Para cerrar la aplicación, vuelve a la Terminal y pulsa Ctrl + C.
 
 ### Si ya está abierta
@@ -68,14 +69,33 @@ Si otra persona ya tiene la aplicación funcionando, solo necesitas que te diga 
 
 ### Desde un teléfono
 
-El teléfono tiene que estar conectado **a la misma red Wi-Fi** que la computadora donde corre la aplicación.
+El teléfono no instala nada: solo muestra la aplicación que está abierta en una computadora. Por eso hacen falta dos cosas:
 
-1. Averigua la dirección IP de la computadora:
-   - En Mac: Ajustes del Sistema → Wi-Fi → **Detalles** junto a la red conectada → "Dirección IP".
-   - En Windows: en el Símbolo del sistema, escribe `ipconfig` y busca "Dirección IPv4".
-2. En el navegador del teléfono, entra a `http://` + esa IP + `:3001`. Por ejemplo, `http://192.168.1.25:3001`.
+- **Una computadora con la aplicación abierta**, siguiendo [Cada vez que quieras jugar](#cada-vez-que-quieras-jugar). Puede ser la tuya o la de otra persona.
+- **El teléfono conectado al mismo Wi-Fi que esa computadora.** Con datos móviles o con otra red no funciona.
 
-Si no carga, el firewall de la computadora puede estar bloqueando la conexión: en Mac, Ajustes del Sistema → Red → Firewall, permite las conexiones entrantes a "node".
+**En la computadora**, quien tiene la aplicación abierta:
+
+1. Deja abierta la Terminal donde corre la aplicación. Esa ventana está ocupada y no responde a lo que escribas.
+2. Averigua la **dirección IP** de la computadora, su número dentro de la red Wi-Fi:
+   - En Mac, la forma más rápida: con la Terminal al frente, pulsa **⌘ + N** para abrir una **ventana nueva**, escribe `ipconfig getifaddr en0` y pulsa Enter. Aparece un número como `192.168.11.237`.
+   - En Mac, otra forma: Ajustes del Sistema → Wi-Fi → **Detalles** junto a la red conectada → "Dirección IP".
+   - En Windows: abre un Símbolo del sistema nuevo, escribe `ipconfig` y busca "Dirección IPv4".
+3. Arma la dirección para el teléfono: `http://` + la IP + `:3001`. Con el ejemplo de arriba, **http://192.168.11.237:3001**. Pásasela a quien va a jugar.
+4. Si la computadora pregunta si quieres permitir que "node" acepte conexiones entrantes, pulsa **Permitir**.
+
+**En el teléfono:**
+
+1. Conéctate al **mismo Wi-Fi** que la computadora.
+2. Abre el navegador (Chrome o Safari) y escribe la dirección completa, con `http://` al principio y `:3001` al final. **No uses `localhost`**: en el teléfono significa "este mismo teléfono" y no funciona.
+3. Junto a la dirección puede aparecer un triángulo o el aviso "No seguro". Es normal: la aplicación está en tu red local, no en internet.
+4. Mientras juegas, la computadora tiene que seguir encendida, con la Terminal abierta y sin suspenderse. Si se cierra, el teléfono muestra "No se pudo contactar al bot".
+
+**Si no carga en el teléfono:**
+
+- Revisa que el teléfono y la computadora estén en el mismo Wi-Fi y que la dirección esté escrita exacta.
+- El firewall de la computadora puede estar bloqueando la conexión: en Mac, Ajustes del Sistema → Red → Firewall, y permite las conexiones entrantes a "node".
+- Algunas redes de oficina o públicas no dejan que los aparatos se comuniquen entre sí. En ese caso, prueba con otra red, por ejemplo la de tu casa.
 
 ## La pantalla
 
