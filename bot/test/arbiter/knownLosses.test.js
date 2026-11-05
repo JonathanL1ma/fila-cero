@@ -25,6 +25,9 @@ describe('libro de derrotas contra Sleipnir', () => {
     expect(avoidedColumns(turnAfter('334552333324244122', ' sleipnir '))).toEqual([2])
     expect(avoidedColumns(turnAfter('33335443433', 'Equipo 3'))).toEqual([])
     expect(avoidedColumns(turnAfter('3333544343'))).toEqual([])
+    expect(avoidedColumns(turnAfter('33333345122224225344', 'Odd Times'))).toEqual([4])
+    expect(avoidedColumns(turnAfter('3333344444106343416', 'Odd Times'))).toEqual([0])
+    expect(avoidedColumns(turnAfter('3333344444106343416', 'Sleipnir'))).toEqual([])
   })
 
   it('el motor no juega una columna excluida en las posiciones reales', () => {
